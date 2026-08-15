@@ -9,9 +9,9 @@ export default function LogoContainer() {
         <Cog size={22} className="animate-spin mt-2" />
       </span>
       <div>
-        Hire
+        Job
         <span className="text-primary font-bold relative after:content-['.'] after:text-white after:animate-pulse after:text-3xl after:inline-block">
-          Pulse
+          Rcentz
         </span>
       </div>
     </Link>
