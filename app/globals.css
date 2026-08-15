@@ -1,0 +1,331 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* ─────────────────────────────────────────────
+     Semantic Colors
+     ───────────────────────────────────────────── */
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* ─────────────────────────────────────────────
+     DevKiddz Brand Colors
+     ───────────────────────────────────────────── */
+
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-navy-deep: var(--brand-navy-deep);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-red: var(--brand-red);
+  --color-brand-ivory: var(--brand-ivory);
+
+  /* ─────────────────────────────────────────────
+     Background System
+     ───────────────────────────────────────────── */
+
+  --color-grid: var(--grid-color);
+  --color-grid-glow: var(--grid-glow);
+
+  /* ─────────────────────────────────────────────
+     Charts
+     ───────────────────────────────────────────── */
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* ─────────────────────────────────────────────
+     Sidebar
+     ───────────────────────────────────────────── */
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* ─────────────────────────────────────────────
+   Typography
+   ───────────────────────────────────────────── */
+
+  --font-sans: var(--font-noto-sans);
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  --font-heading: var(--font-noto-sans);
+
+  /* ─────────────────────────────────────────────
+     Radius
+     ───────────────────────────────────────────── */
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ═══════════════════════════════════════════════
+   LIGHT THEME
+   ═══════════════════════════════════════════════ */
+
+:root {
+  /* ─────────────────────────────────────────────
+     DevKiddz Brand System
+     ───────────────────────────────────────────── */
+
+  --brand-primary: #20b2a6;
+  --brand-navy: #081120;
+  --brand-navy-deep: #040b18;
+  --brand-gold: #c9a227;
+  --brand-red: #de2317;
+  --brand-ivory: #fcfaf6;
+
+  /* ─────────────────────────────────────────────
+     Background System
+     
+     These belong to the animated grid system,
+     not the primary brand palette.
+     ───────────────────────────────────────────── */
+
+  --grid-color: oklch(65% 0.12 160);
+  --grid-glow: oklch(65% 0.18 160);
+
+  /* ─────────────────────────────────────────────
+     Application Theme
+     ───────────────────────────────────────────── */
+
+  --background: var(--brand-ivory);
+  --foreground: var(--brand-navy);
+
+  --card: #ffffff;
+  --card-foreground: var(--brand-navy);
+
+  --popover: #ffffff;
+  --popover-foreground: var(--brand-navy);
+
+  --primary: var(--brand-primary);
+  --primary-foreground: #ffffff;
+
+  --secondary: oklch(96% 0.025 175);
+  --secondary-foreground: var(--brand-navy);
+
+  --muted: oklch(96% 0.01 90);
+  --muted-foreground: oklch(45% 0.015 250);
+
+  --accent: oklch(96% 0.035 85);
+  --accent-foreground: var(--brand-navy);
+
+  --destructive: var(--brand-red);
+
+  --border: oklch(20% 0.02 250 / 12%);
+  --input: oklch(20% 0.02 250 / 16%);
+  --ring: var(--brand-primary);
+
+  /* ─────────────────────────────────────────────
+     Charts
+     ───────────────────────────────────────────── */
+
+  --chart-1: var(--brand-primary);
+  --chart-2: var(--brand-gold);
+  --chart-3: var(--brand-red);
+  --chart-4: var(--brand-navy);
+  --chart-5: oklch(65% 0.12 160);
+
+  /* ─────────────────────────────────────────────
+     Sidebar
+     ───────────────────────────────────────────── */
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--brand-navy);
+  --sidebar-primary: var(--brand-primary);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: oklch(96% 0.025 175);
+  --sidebar-accent-foreground: var(--brand-navy);
+  --sidebar-border: oklch(20% 0.02 250 / 10%);
+  --sidebar-ring: var(--brand-primary);
+
+  --radius: 0.625rem;
+}
+
+/* ═══════════════════════════════════════════════
+   DARK THEME
+   ═══════════════════════════════════════════════ */
+
+.dark {
+  /* ─────────────────────────────────────────────
+     Application Theme
+     ───────────────────────────────────────────── */
+
+  --background: var(--brand-navy-deep);
+  --foreground: #f8fafc;
+
+  --card: var(--brand-navy);
+  --card-foreground: #f8fafc;
+
+  --popover: var(--brand-navy);
+  --popover-foreground: #f8fafc;
+
+  --primary: var(--brand-primary);
+  --primary-foreground: var(--brand-navy-deep);
+
+  --secondary: oklch(25% 0.025 180);
+  --secondary-foreground: #f8fafc;
+
+  --muted: oklch(22% 0.02 250);
+  --muted-foreground: oklch(72% 0.015 250);
+
+  --accent: oklch(30% 0.06 85);
+  --accent-foreground: #f8fafc;
+
+  --destructive: var(--brand-red);
+
+  --border: oklch(100% 0 0 / 10%);
+  --input: oklch(100% 0 0 / 12%);
+  --ring: var(--brand-primary);
+
+  /* ─────────────────────────────────────────────
+     Charts
+     ───────────────────────────────────────────── */
+
+  --chart-1: var(--brand-primary);
+  --chart-2: var(--brand-gold);
+  --chart-3: var(--brand-red);
+  --chart-4: oklch(70% 0.12 250);
+  --chart-5: oklch(70% 0.12 160);
+
+  /* ─────────────────────────────────────────────
+     Sidebar
+     ───────────────────────────────────────────── */
+
+  --sidebar: var(--brand-navy);
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: var(--brand-primary);
+  --sidebar-primary-foreground: var(--brand-navy-deep);
+  --sidebar-accent: oklch(25% 0.025 180);
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: oklch(100% 0 0 / 10%);
+  --sidebar-ring: var(--brand-primary);
+}
+
+/* ═══════════════════════════════════════════════
+   BASE
+   ═══════════════════════════════════════════════ */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  html {
+    @apply font-sans;
+  }
+}
+
+/* Background Utility */
+
+@keyframes grid-crawl {
+  0% {
+    transform: translate3d(-25%, -5%, 0);
+    opacity: 0;
+  }
+
+  15% {
+    opacity: 0.45;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+
+  85% {
+    opacity: 0.45;
+  }
+
+  100% {
+    transform: translate3d(25%, 5%, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes grid-ambient {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+}
+
+.grid-crawler {
+  position: absolute;
+  inset: -20%;
+
+  background: radial-gradient(
+    ellipse 140px 60% at 20% 50%,
+    color-mix(in oklch, var(--grid-glow) 35%, transparent),
+    transparent 70%
+  );
+
+  filter: blur(8px);
+
+  animation: grid-crawl 18s linear infinite;
+}
+
+.grid-ambient-glow {
+  background:
+    radial-gradient(
+      circle at 25% 30%,
+      color-mix(in oklch, var(--grid-glow) 16%, transparent),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 75% 65%,
+      color-mix(in oklch, var(--grid-glow) 12%, transparent),
+      transparent 32%
+    );
+
+  animation: grid-ambient 8s ease-in-out infinite;
+}
