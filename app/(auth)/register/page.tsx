@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 import { authClient } from '@/lib/auth-client';
 
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
 import LogoContainer from '@/components/website/LogoContainer';
 
 export default function RegisterPage() {
@@ -74,7 +76,7 @@ export default function RegisterPage() {
         callbackURL: '/'
       });
     } catch {
-      setError(`Unable to continue with ${provider}. Please try again.`);
+      setError(`Unable to continue with ${provider === 'google' ? 'Google' : 'GitHub'}. Please try again.`);
       setSocialLoading(null);
     }
   }
@@ -85,15 +87,14 @@ export default function RegisterPage() {
     <main className="relative flex min-h-[calc(100vh-80px)] items-center justify-center overflow-hidden px-4 py-12">
       {/* Background decoration */}
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 -translate-y-1/4 rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
       </div>
 
       <Card className="w-full max-w-md border-border/60 bg-card/90 shadow-2xl backdrop-blur-xl">
         <CardHeader className="space-y-4 pb-6 text-center">
-          {/* Brand */}
-          <div className="mx-auto flex items-center justify-center mt-4">
-            <LogoContainer />
+          <div className="mt-4 flex items-center justify-center">
+            <LogoContainer href="/" className="" />
           </div>
 
           <div className="space-y-2">
@@ -113,9 +114,12 @@ export default function RegisterPage() {
               variant="outline"
               disabled={isBusy}
               onClick={() => handleSocialSignIn('google')}
-              className="h-11">
+              className="h-11 cursor-pointer">
               {socialLoading === 'google' ? (
-                'Connecting...'
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connecting
+                </>
               ) : (
                 <>
                   <svg viewBox="0 0 24 24" aria-hidden="true" className="mr-2 h-4 w-4">
@@ -146,9 +150,12 @@ export default function RegisterPage() {
               variant="outline"
               disabled={isBusy}
               onClick={() => handleSocialSignIn('github')}
-              className="h-11">
+              className="h-11 cursor-pointer">
               {socialLoading === 'github' ? (
-                'Connecting...'
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connecting
+                </>
               ) : (
                 <>
                   <svg viewBox="0 0 24 24" aria-hidden="true" className="mr-2 h-4 w-4 fill-current">
@@ -264,7 +271,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Terms / Privacy */}
+            {/* Terms */}
             <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
               <div className="flex items-start gap-3">
                 <Checkbox
@@ -272,7 +279,7 @@ export default function RegisterPage() {
                   checked={acceptTerms}
                   onCheckedChange={checked => setAcceptTerms(checked === true)}
                   disabled={isBusy}
-                  className="mt-0.5"
+                  className="mt-0.5 cursor-pointer"
                 />
 
                 <label
@@ -298,15 +305,22 @@ export default function RegisterPage() {
             <Button
               type="submit"
               disabled={isBusy}
-              className="h-11 w-full bg-primary font-semibold shadow-lg shadow-primary/20">
-              {isLoading ? 'Creating account...' : 'Create account'}
+              className="h-11 w-full cursor-pointer bg-primary font-semibold shadow-lg shadow-primary/20">
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account
+                </>
+              ) : (
+                'Create account'
+              )}
             </Button>
           </form>
 
           {/* Login */}
           <div className="border-t pt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Already have a JobMan account?{' '}
+              Already have an account?{' '}
               <Link href="/login" className="font-semibold text-primary hover:underline">
                 Sign in
               </Link>

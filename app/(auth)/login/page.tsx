@@ -78,14 +78,14 @@ export default function LoginPage() {
         <CardHeader className="space-y-4 pb-6 text-center">
           {/* Brand */}
           <div className="mx-auto flex items-center justify-center mt-4">
-            <LogoContainer />
+            <LogoContainer href="/" className="" />
           </div>
 
           <div className="space-y-2">
             <CardTitle className="text-2xl font-bold tracking-tight">Welcome back</CardTitle>
 
             <CardDescription className="text-sm leading-6">
-              Sign in to your JobMan account and get back to work.
+              Sign in to your an account and get back to work.
             </CardDescription>
           </div>
         </CardHeader>

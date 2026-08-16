@@ -1,24 +1,24 @@
 'use client';
 
+import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  Bell,
-  BriefcaseBusiness,
-  CircleHelp,
-  CreditCard,
-  FileText,
-  LayoutDashboard,
-  LogOut,
-  Moon,
-  Settings,
-  UserRound
-} from 'lucide-react';
+import { Briefcase, Loader2, LogOut, Menu, Settings, User } from 'lucide-react';
 
 import { authClient } from '@/lib/auth-client';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 
 import {
   Sheet,
@@ -28,6 +28,7 @@ import {
   SheetTitle,
   SheetTrigger
 } from '@/components/ui/sheet';
+
 import { ThemeToggle } from '../ui/ThemeToggle';
 
 export default function ActionButton() {
@@ -35,179 +36,251 @@ export default function ActionButton() {
 
   const { data: session, isPending } = authClient.useSession();
 
-  async function handleSignOut() {
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          router.push('/');
-          router.refresh();
-        }
-      }
-    });
-  }
+  const [isSigningOut, setIsSigningOut] = React.useState(false);
 
-  if (isPending) {
-    return null;
+  async function handleSignOut() {
+    if (isSigningOut) return;
+
+    setIsSigningOut(true);
+
+    try {
+      const { error } = await authClient.signOut();
+
+      if (error) {
+        console.error('Sign out failed:', error);
+        return;
+      }
+
+      router.push('/');
+      router.refresh();
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    } finally {
+      setIsSigningOut(false);
+    }
   }
 
   /*
-   * Guest state
+   * Session loading
    */
-  if (!session) {
+  if (isPending) {
     return (
-      <Link
-        href="/login"
-        className={buttonVariants({
-          variant: 'default',
-          className: 'cursor-pointer bg-primary px-4 py-2 text-sm font-medium text-white'
-        })}>
-        Login
-      </Link>
+      <Button type="button" variant="ghost" size="icon" disabled aria-label="Loading account">
+        <Loader2 className="h-4 w-4 animate-spin" />
+      </Button>
     );
   }
 
-  const userName = session.user.name || 'JobMan Member';
+  /*
+   * Guest
+   */
+  if (!session) {
+    return (
+      <div className="flex items-center gap-2">
+        {/* <ThemeToggle /> */}
 
-  const userInitials = userName
-    .split(' ')
-    .map(part => part.charAt(0))
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+        <Link
+          href="/login"
+          className={buttonVariants({
+            variant: 'default',
+            className: 'min-h-10 bg-primary px-4 text-sm font-medium text-white shadow-sm hover:bg-primary/90'
+          })}>
+          Get Started for free
+        </Link>
+      </div>
+    );
+  }
+
+  const user = session.user;
+
+  const initials =
+    user.name
+      ?.trim()
+      .split(/\s+/)
+      .map(part => part.charAt(0))
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'U';
 
   return (
-    <Sheet>
-      {/* Navbar account trigger */}
-      <SheetTrigger className="group flex cursor-pointer items-center gap-2 rounded-full outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
-        <Avatar className="h-9 w-9 border border-border">
-          <AvatarImage src={session.user.image || undefined} alt={userName} />
+    <>
+      {/* =========================================================
+          DESKTOP ACCOUNT MENU
+      ========================================================= */}
+      <div className="hidden items-center gap-3 md:flex">
+        {/* <ThemeToggle /> */}
 
-          <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-            {userInitials}
-          </AvatarFallback>
-        </Avatar>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            type="button"
+            className="flex items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+            <div className="flex items-center gap-2 bg-muted/30">
+              <Avatar className="h-10 w-10 shrink-0">
+                <AvatarImage src={user.image || undefined} alt={user.name || 'User avatar'} />
 
-        <div className="text-left sm:block">
-          <p className="max-w-[130px] truncate text-sm font-semibold leading-tight">
-            Hi, {userName.split(' ')[0]}
-          </p>
-
-          <p className="text-xs text-muted-foreground">Member</p>
-        </div>
-      </SheetTrigger>
-
-      <SheetContent
-        side="right"
-        className="flex h-dvh max-h-dvh w-full flex-col gap-0 overflow-hidden border-l border-border/60 bg-background p-0 sm:max-w-md">
-        {/* Header */}
-        <SheetHeader className="shrink-0 border-b border-border/60 px-6 pb-5 pt-6 text-left">
-          <div className="min-w-0 pr-8">
-            <SheetTitle className="text-lg font-bold">My JobMan</SheetTitle>
-
-            <SheetDescription className="mt-1">Manage your account, jobs and preferences.</SheetDescription>
-          </div>
-        </SheetHeader>
-
-        {/* Scrollable content */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <div className="space-y-6 px-6 py-6">
-            {/* User identity */}
-            <div className="flex min-w-0 items-center gap-4 rounded-2xl border border-border/60 bg-muted/30 p-4">
-              <Avatar className="h-14 w-14 shrink-0 border border-border">
-                <AvatarImage src={session.user.image || undefined} alt={userName} />
-
-                <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
-                  {userInitials}
-                </AvatarFallback>
+                <AvatarFallback className="bg-primary text-white">{initials}</AvatarFallback>
               </Avatar>
 
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{userName}</p>
+              <div className="min-w-0 flex-row items-center gap-1.5 truncate text-left">
+                <p className="truncate text-sm font-semibold">{user.name || 'User'}</p>
 
-                <p className="truncate text-sm text-muted-foreground">{session.user.email}</p>
-
-                <span className="mt-1 inline-flex rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                  Member
-                </span>
+                <p className="truncate text-xs text-muted-foreground">{user.email}</p>
               </div>
             </div>
+          </DropdownMenuTrigger>
 
-            {/* Main navigation */}
-            <div className="space-y-1">
-              <AccountLink
-                href="/dashboard"
-                icon={<LayoutDashboard className="h-5 w-5" />}
-                label="Dashboard"
-              />
+          <DropdownMenuContent align="end" sideOffset={8} className="w-64">
+            {/* Account information MUST be inside Group */}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>
+                <div className="flex items-center gap-3 py-1">
+                  <Avatar className="h-10 w-10 shrink-0">
+                    <AvatarImage src={user.image || undefined} alt={user.name || 'User avatar'} />
 
-              <AccountLink href="/profile" icon={<UserRound className="h-5 w-5" />} label="Profile" />
+                    <AvatarFallback className="bg-primary text-primary-foreground">{initials}</AvatarFallback>
+                  </Avatar>
 
-              <AccountLink href="/jobs" icon={<BriefcaseBusiness className="h-5 w-5" />} label="My Jobs" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{user.name || 'User'}</p>
 
-              <AccountLink
-                href="/applications"
-                icon={<FileText className="h-5 w-5" />}
-                label="Applications"
-              />
-
-              <AccountLink href="/notifications" icon={<Bell className="h-5 w-5" />} label="Notifications" />
-
-              <AccountLink href="/payments" icon={<CreditCard className="h-5 w-5" />} label="Payments" />
-
-              <AccountLink
-                href="/settings"
-                icon={<Settings className="h-5 w-5" />}
-                label="Account settings"
-              />
-
-              <AccountLink href="/support" icon={<CircleHelp className="h-5 w-5" />} label="Support" />
-            </div>
-
-            {/* Preferences */}
-            <div className="border-t border-border/60 pt-5">
-              <div className="flex items-center justify-between rounded-xl px-3 py-3">
-                <div className="flex items-center gap-3">
-                  <Moon className="h-5 w-5 shrink-0 text-muted-foreground" />
-
-                  <span className="text-sm font-medium">Theme</span>
+                    <p className="truncate text-xs font-normal text-muted-foreground">{user.email}</p>
+                  </div>
                 </div>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem onClick={() => router.push('/profile')}>
+              <User className="mr-2 h-4 w-4" />
+              Profile
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={() => router.push('/jobs')}>
+              <Briefcase className="mr-2 h-4 w-4" />
+              My Jobs
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={() => router.push('/settings')}>
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              disabled={isSigningOut}
+              onClick={handleSignOut}
+              className="text-destructive focus:text-destructive">
+              {isSigningOut ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="mr-2 h-4 w-4" />
+              )}
+
+              {isSigningOut ? 'Signing out...' : 'Sign out'}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* =========================================================
+          MOBILE ACCOUNT SHEET
+      ========================================================= */}
+      <div className="md:hidden">
+        <Sheet>
+          <SheetTrigger
+            type="button"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={user.image || undefined} alt={user.name || 'User avatar'} />
+
+              <AvatarFallback className="bg-primary text-xs font-semibold text-white">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+
+            <span className="sr-only">Open account menu</span>
+          </SheetTrigger>
+
+          <SheetContent side="right" className="w-[300px] sm:w-[360px]">
+            <div className="mt-6 flex flex-col gap-2">
+              {/* Account card */}
+              <div className="mb-4 flex items-center gap-3 rounded-xl border bg-muted/30 p-4">
+                <Avatar className="h-12 w-12 shrink-0">
+                  <AvatarImage src={user.image || undefined} alt={user.name || 'User avatar'} />
+
+                  <AvatarFallback className="bg-primary text-primary-foreground">{initials}</AvatarFallback>
+                </Avatar>
+
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{user.name || 'User'}</p>
+
+                  <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                </div>
+              </div>
+
+              {/* Navigation */}
+              <Link
+                href="/profile"
+                className={buttonVariants({
+                  variant: 'ghost',
+                  className: 'h-11 justify-start px-3'
+                })}>
+                <User className="mr-3 h-4 w-4" />
+                Profile
+              </Link>
+
+              <Link
+                href="/jobs"
+                className={buttonVariants({
+                  variant: 'ghost',
+                  className: 'h-11 justify-start px-3'
+                })}>
+                <Briefcase className="mr-3 h-4 w-4" />
+                My Jobs
+              </Link>
+
+              <Link
+                href="/settings"
+                className={buttonVariants({
+                  variant: 'ghost',
+                  className: 'h-11 justify-start px-3'
+                })}>
+                <Settings className="mr-3 h-4 w-4" />
+                Settings
+              </Link>
+
+              <div className="my-2 border-t" />
+
+              {/* Theme */}
+              <div className="flex items-center justify-between px-3 py-2">
+                <span className="text-sm font-medium">Appearance</span>
 
                 <ThemeToggle />
               </div>
+
+              <div className="my-2 border-t" />
+
+              {/* Sign out */}
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={isSigningOut}
+                onClick={handleSignOut}
+                className="h-11 w-full justify-start px-3">
+                {isSigningOut ? (
+                  <Loader2 className="mr-3 h-4 w-4 animate-spin" />
+                ) : (
+                  <LogOut className="mr-3 h-4 w-4" />
+                )}
+
+                {isSigningOut ? 'Signing out...' : 'Sign out'}
+              </Button>
             </div>
-          </div>
-        </div>
-
-        {/* Fixed sign out section */}
-        <div className="shrink-0 border-t border-border/60 bg-background p-6">
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={handleSignOut}
-            className="h-11 w-full cursor-pointer font-semibold">
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign out
-          </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-type AccountLinkProps = {
-  href: string;
-  label: string;
-  icon: React.ReactNode;
-};
-
-function AccountLink({ href, label, icon }: AccountLinkProps) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-4 rounded-xl px-3 py-3 text-sm font-medium transition-colors hover:bg-muted hover:text-primary">
-      <span className="shrink-0 text-muted-foreground">{icon}</span>
-
-      <span className="truncate">{label}</span>
-    </Link>
+          </SheetContent>
+        </Sheet>
+      </div>
+    </>
   );
 }
