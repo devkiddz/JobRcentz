@@ -1,71 +1,336 @@
-
 generator client {
   provider = "prisma-client"
+  output   = "../lib/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+/* ========================================================================= */
+/* ENUMS                                                                     */
+/* ========================================================================= */
 
-  @@unique([email])
+enum UserRole {
+  JOB_SEEKER
+  EMPLOYER
+  ADMIN
+}
+
+enum JobStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+  TEMPORARY
+}
+
+enum WorkMode {
+  ONSITE
+  REMOTE
+  HYBRID
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWING
+  SHORTLISTED
+  INTERVIEW
+  REJECTED
+  HIRED
+  WITHDRAWN
+}
+
+/* ========================================================================= */
+/* USER                                                                      */
+/* ========================================================================= */
+
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+
+  role UserRole @default(JOB_SEEKER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+
+  jobSeeker JobSeekerProfile?
+  company   CompanyProfile?
+
+  jobs         Job[]
+  applications Application[]
+  savedJobs    SavedJob[]
+
   @@map("user")
 }
 
-model Session {
-  id        String   @id
-  expiresAt DateTime
-  token     String
+/* ========================================================================= */
+/* JOB SEEKER PROFILE                                                        */
+/* ========================================================================= */
+
+model JobSeekerProfile {
+  id String @id @default(cuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  headline String
+  location String
+  bio      String
+
+  currentRole       String?
+  yearsOfExperience Int?
+
+  skills String[] @default([])
+
+  portfolio String?
+  linkedin  String?
+  github    String?
+  x         String?
+
+  profilePhotoUrl      String?
+  profilePhotoPublicId String?
+
+  cvUrl  String?
+  cvName String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  applications Application[]
+  savedJobs    SavedJob[]
+
+  @@index([location])
+  @@index([currentRole])
+  @@map("job_seeker_profile")
+}
+
+/* ========================================================================= */
+/* COMPANY / EMPLOYER PROFILE                                                */
+/* ========================================================================= */
+
+model CompanyProfile {
+  id String @id @default(cuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  companyName        String
+  companyWebsite     String?
+  companySize        String?
+  companyIndustry    String
+  companyDescription String
+  companyLocation    String
+  companyAddress     String?
+
+  companyContactEmail String
+  companyContactPhone String?
+
+  companyLinkedIn String?
+  companyX        String?
+  companyFacebook String?
+
+  companyLogoUrl      String?
+  companyLogoPublicId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs Job[]
+
+  @@index([companyName])
+  @@index([companyIndustry])
+  @@index([companyLocation])
+  @@map("company_profile")
+}
+
+/* ========================================================================= */
+/* JOB                                                                       */
+/* ========================================================================= */
+
+model Job {
+  id String @id @default(cuid())
+
+  companyId String
+  company   CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  postedById String
+  postedBy   User @relation(fields: [postedById], references: [id], onDelete: Restrict)
+
+  title        String
+  description  String
+  requirements String?
+
+  location       String?
+  workMode       WorkMode       @default(ONSITE)
+  employmentType EmploymentType
+
+  salaryMin      Decimal?
+  salaryMax      Decimal?
+  salaryCurrency String? @default("NGN")
+
+  skills String[] @default([])
+
+  status JobStatus @default(DRAFT)
+
+  publishedAt DateTime?
+  expiresAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applications Application[]
+  savedBy      SavedJob[]
+
+  @@index([companyId])
+  @@index([postedById])
+  @@index([status])
+  @@index([location])
+  @@index([workMode])
+  @@index([employmentType])
+  @@index([createdAt])
+  @@map("job")
+}
+
+/* ========================================================================= */
+/* APPLICATION                                                               */
+/* ========================================================================= */
+
+model Application {
+  id String @id @default(cuid())
+
+  jobId String
+  job   Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  applicantId String
+  applicant   User @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  jobSeekerProfileId String
+jobSeekerProfile JobSeekerProfile @relation(fields: [jobSeekerProfileId], references: [id], onDelete: Cascade)
+
+  status ApplicationStatus @default(PENDING)
+
+  coverLetter String?
+
+  cvUrl  String?
+  cvName String?
+
+  appliedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([jobId, applicantId])
+  @@index([jobId])
+  @@index([applicantId])
+  @@index([jobSeekerProfileId])
+  @@index([status])
+  @@map("application")
+}
+
+/* ========================================================================= */
+/* SAVED JOB                                                                 */
+/* ========================================================================= */
+
+model SavedJob {
+  id String @id @default(cuid())
+
+  jobId String
+  job   Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  jobSeekerProfileId String
+  jobSeekerProfile JobSeekerProfile @relation(fields: [jobSeekerProfileId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([jobId, userId])
+  @@index([userId])
+  @@index([jobId])
+  @@index([jobSeekerProfileId])
+  @@map("saved_job")
+}
+
+/* ========================================================================= */
+/* BETTER AUTH — SESSION                                                     */
+/* ========================================================================= */
+
+model Session {
+  id String @id
+
+  expiresAt DateTime
+  token     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   ipAddress String?
   userAgent String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([token])
   @@index([userId])
   @@map("session")
 }
 
+/* ========================================================================= */
+/* BETTER AUTH — ACCOUNT                                                     */
+/* ========================================================================= */
+
 model Account {
-  id                    String    @id
-  accountId             String
-  providerId            String
-  userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
+  id String @id
+
+  accountId  String
+  providerId String
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessToken  String?
+  refreshToken String?
+  idToken      String?
+
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
-  scope                 String?
-  password              String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+
+  scope    String?
+  password String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@map("account")
 }
 
+/* ========================================================================= */
+/* BETTER AUTH — VERIFICATION                                                */
+/* ========================================================================= */
+
 model Verification {
-  id         String   @id
+  id String @id
+
   identifier String
   value      String
   expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([identifier])
   @@map("verification")
