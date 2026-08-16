@@ -1,10 +1,13 @@
 import type { Metadata } from 'next';
-import { Noto_Sans } from 'next/font/google';
+import { Noto_Sans, Geist } from 'next/font/google';
 
 import './globals.css';
 
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { GridBackground } from '@/backgrounds/GridBackground';
+import { cn } from '@/lib/utils';
+
+const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 const notoSans = Noto_Sans({
   variable: '--font-noto-sans',
@@ -18,10 +21,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${notoSans.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={cn('h-full', 'antialiased', notoSans.variable, 'font-sans', geist.variable)}>
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <GridBackground>{children}</GridBackground>
+          <GridBackground gridSize={120}>{children}</GridBackground>
         </ThemeProvider>
       </body>
     </html>

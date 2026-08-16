@@ -43,7 +43,7 @@ export default function OnboardingForm() {
   }
 
   return (
-    <div className="flex w-full max-w-7xl flex-col items-center justify-center space-y-4 rounded-lg border border-border/50 p-4 backdrop-blur-3xl sm:p-6 md:p-10">
+    <div className="flex max-w-7xl flex-col items-center justify-center space-y-4 p-4 sm:p-6 md:p-10">
       {/* Header */}
       <div className="flex flex-col items-center pb-2 text-center">
         <LogoContainer className="scale-80" href="/" spin={logoSpin} />

@@ -11,7 +11,7 @@ interface GridBackgroundProps {
   animated?: boolean;
 }
 
-export function GridBackground({ children, className, gridSize = 40, animated = true }: GridBackgroundProps) {
+export function GridBackground({ children, className, gridSize = 72, animated = true }: GridBackgroundProps) {
   return (
     <div
       style={
@@ -20,7 +20,7 @@ export function GridBackground({ children, className, gridSize = 40, animated = 
         } as React.CSSProperties
       }
       className={cn('relative isolate min-h-full flex-1 overflow-clip bg-background', className)}>
-      {/* Animated Grid */}
+      {/* Subtle Grid */}
       <div
         aria-hidden="true"
         className={cn('pointer-events-none absolute inset-0 -z-20', animated && 'grid-background-animated')}
@@ -30,7 +30,7 @@ export function GridBackground({ children, className, gridSize = 40, animated = 
               to right,
               color-mix(
                 in oklch,
-                var(--grid-color) 14%,
+                var(--grid-color) 6%,
                 transparent
               ) 1px,
               transparent 1px
@@ -39,7 +39,7 @@ export function GridBackground({ children, className, gridSize = 40, animated = 
               to bottom,
               color-mix(
                 in oklch,
-                var(--grid-color) 14%,
+                var(--grid-color) 6%,
                 transparent
               ) 1px,
               transparent 1px

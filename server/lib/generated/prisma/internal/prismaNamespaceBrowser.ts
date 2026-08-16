@@ -54,7 +54,13 @@ export const ModelName = {
   User: 'User',
   Session: 'Session',
   Account: 'Account',
-  Verification: 'Verification'
+  Verification: 'Verification',
+  UserProfile: 'UserProfile',
+  Company: 'Company',
+  CompanyMember: 'CompanyMember',
+  Job: 'Job',
+  Application: 'Application',
+  SavedJob: 'SavedJob'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -129,6 +135,113 @@ export const VerificationScalarFieldEnum = {
 } as const
 
 export type VerificationScalarFieldEnum = (typeof VerificationScalarFieldEnum)[keyof typeof VerificationScalarFieldEnum]
+
+
+export const UserProfileScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  headline: 'headline',
+  bio: 'bio',
+  phone: 'phone',
+  location: 'location',
+  address: 'address',
+  website: 'website',
+  linkedIn: 'linkedIn',
+  x: 'x',
+  github: 'github',
+  avatarUrl: 'avatarUrl',
+  avatarId: 'avatarId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserProfileScalarFieldEnum = (typeof UserProfileScalarFieldEnum)[keyof typeof UserProfileScalarFieldEnum]
+
+
+export const CompanyScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  website: 'website',
+  industry: 'industry',
+  size: 'size',
+  description: 'description',
+  location: 'location',
+  address: 'address',
+  contactEmail: 'contactEmail',
+  contactPhone: 'contactPhone',
+  linkedIn: 'linkedIn',
+  x: 'x',
+  facebook: 'facebook',
+  logoUrl: 'logoUrl',
+  logoPublicId: 'logoPublicId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CompanyScalarFieldEnum = (typeof CompanyScalarFieldEnum)[keyof typeof CompanyScalarFieldEnum]
+
+
+export const CompanyMemberScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  companyId: 'companyId',
+  role: 'role',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CompanyMemberScalarFieldEnum = (typeof CompanyMemberScalarFieldEnum)[keyof typeof CompanyMemberScalarFieldEnum]
+
+
+export const JobScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  employmentType: 'employmentType',
+  workplaceType: 'workplaceType',
+  experienceLevel: 'experienceLevel',
+  location: 'location',
+  salaryMin: 'salaryMin',
+  salaryMax: 'salaryMax',
+  salaryCurrency: 'salaryCurrency',
+  skills: 'skills',
+  requirements: 'requirements',
+  benefits: 'benefits',
+  status: 'status',
+  publishedAt: 'publishedAt',
+  expiresAt: 'expiresAt',
+  companyId: 'companyId',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type JobScalarFieldEnum = (typeof JobScalarFieldEnum)[keyof typeof JobScalarFieldEnum]
+
+
+export const ApplicationScalarFieldEnum = {
+  id: 'id',
+  jobId: 'jobId',
+  applicantId: 'applicantId',
+  status: 'status',
+  coverLetter: 'coverLetter',
+  resumeUrl: 'resumeUrl',
+  resumeId: 'resumeId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ApplicationScalarFieldEnum = (typeof ApplicationScalarFieldEnum)[keyof typeof ApplicationScalarFieldEnum]
+
+
+export const SavedJobScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  jobId: 'jobId',
+  createdAt: 'createdAt'
+} as const
+
+export type SavedJobScalarFieldEnum = (typeof SavedJobScalarFieldEnum)[keyof typeof SavedJobScalarFieldEnum]
 
 
 export const SortOrder = {
