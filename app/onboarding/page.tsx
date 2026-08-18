@@ -1,13 +1,36 @@
+import { redirect } from 'next/navigation';
+
+import { getOnboardingState } from '@/server/actions/getOnboardingState';
+import { getJobSeekerProfile } from '@/server/actions/onboarding/jobseeker/getJobSeekerProfile';
+import { getCompanyProfile } from '@/server/actions/onboarding/companies/getCompanyProfile';
+import { getAccountDestination } from '@/server/auth/getAccountDestination';
 import OnboardingForm from '@/components/website/onboarding/OnboardingForm';
-import { getCompanyProfile } from '@/server/actions/companies/getCompanyProfile';
-import { getJobSeekerProfile } from '@/server/actions/onboarding/getJobSeekerProfile';
 
 export default async function OnboardingPage() {
-  const [jobSeekerData, companyData] = await Promise.all([getJobSeekerProfile(), getCompanyProfile()]);
+  const state = await getOnboardingState();
+
+  /*
+   * A boarded account cannot return to onboarding.
+   */
+  if (state.user.role !== 'UNASSIGNED') {
+    redirect(getAccountDestination(state.user.role));
+  }
+
+  /*
+   * These return the FULL objects expected
+   * by OnboardingForm and its child forms.
+   */
+  const [initialJobSeekerProfile, initialCompanyProfile] = await Promise.all([
+    getJobSeekerProfile(),
+    getCompanyProfile()
+  ]);
 
   return (
-    <div className="flex min-h-screen w-screen flex-col items-center justify-center space-y-4 p-4 md:p-10">
-      <OnboardingForm initialJobSeekerProfile={jobSeekerData} initialCompanyProfile={companyData} />
-    </div>
+    <main className="flex min-h-screen items-center justify-center">
+      <OnboardingForm
+        initialJobSeekerProfile={initialJobSeekerProfile}
+        initialCompanyProfile={initialCompanyProfile}
+      />
+    </main>
   );
 }

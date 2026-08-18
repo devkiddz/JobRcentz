@@ -1,15 +1,16 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Building2, Globe, ImagePlus, Loader2, Mail, Phone, Upload, Users } from 'lucide-react';
 
-import { uploadCompanyLogo } from '@/server/actions/companies/uploadCompanyLogo';
-import { saveCompanyProfile } from '@/server/actions/companies/saveCompanyProfile';
-import type { CompanyProfileData } from '@/server/actions/companies/getCompanyProfile';
+import { uploadCompanyLogo } from '@/server/actions/onboarding/companies/uploadCompanyLogo';
+import { saveCompanyProfile } from '@/server/actions/onboarding/companies/saveCompanyProfile';
+import type { CompanyProfileData } from '@/server/actions/onboarding/companies/getCompanyProfile';
 import { COMPANY_FORM_SCHEMA } from '@/server/utils/zodSchemas';
 
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ const ICON_CLASS = 'absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-
 const SOCIAL_ICON_CLASS = 'absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground';
 
 export default function CompanyForm({ onBack, initialProfile }: CompanyFormProps) {
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const existingProfile = initialProfile.profile;
@@ -124,64 +126,54 @@ export default function CompanyForm({ onBack, initialProfile }: CompanyFormProps
 
   async function onSubmit(values: CompanyFormValues) {
     try {
-      let logo: { url: string; publicId: string } | null = null;
+      let logo: {
+        url: string;
+        publicId: string;
+      } | null = null;
 
-      /*
-       * Only upload a logo when the user selected a NEW file.
-       *
-       * If they are simply editing the company profile, the existing
-       * companyLogoUrl remains untouched by saveCompanyProfile().
-       */
       if (values.companyLogo instanceof File) {
         logo = await uploadCompanyLogo(values.companyLogo);
       }
 
       const result = await saveCompanyProfile({
         companyName: values.companyName,
+
         companyWebsite: values.companyWebsite,
+
         companySize: values.companySize,
+
         companyIndustry: values.companyIndustry,
+
         companyDescription: values.companyDescription,
+
         companyLocation: values.companyLocation,
+
         companyAddress: values.companyAddress,
+
         companyContactEmail: values.companyContactEmail,
+
         companyContactPhone: values.companyContactPhone,
+
         companyLinkedIn: values.companyLinkedIn,
+
         companyX: values.companyX,
+
         companyFacebook: values.companyFacebook,
+
         logo
       });
 
-      console.log('Company profile saved:', result);
-
-      /*
-       * Keep the form synchronized with what the database returned.
-       */
-      form.reset({
-        companyName: result.company.companyName,
-        companyWebsite: result.company.companyWebsite ?? '',
-        companySize: (result.company.companySize as CompanyFormValues['companySize']) ?? undefined,
-        companyIndustry: result.company.companyIndustry,
-        companyDescription: result.company.companyDescription,
-        companyLocation: result.company.companyLocation,
-        companyAddress: result.company.companyAddress ?? '',
-        companyContactEmail: result.company.companyContactEmail,
-        companyContactPhone: result.company.companyContactPhone ?? '',
-        companyLinkedIn: result.company.companyLinkedIn ?? '',
-        companyX: result.company.companyX ?? '',
-        companyFacebook: result.company.companyFacebook ?? '',
-        companyLogo: undefined
-      });
-
-      if (result.company.companyLogoUrl) {
-        setLogoPreview(result.company.companyLogoUrl);
+      if (!result.success) {
+        throw new Error('Unable to save company profile.');
       }
 
       /*
-       * The profile was saved successfully.
-       * You can navigate to the dashboard here later.
+       * Account type has now been established.
+       * Leave onboarding immediately.
        */
-      // router.push('/dashboard');
+      router.push('/dashboard');
+
+      router.refresh();
     } catch (error) {
       console.error('Company registration failed:', error);
     }
@@ -263,7 +255,13 @@ export default function CompanyForm({ onBack, initialProfile }: CompanyFormProps
               <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center">
                 <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/60 bg-muted/30">
                   {logoPreview ? (
-                    <Image src={logoPreview} alt="Company logo preview" fill className="object-cover" />
+                    <Image
+                      src={logoPreview}
+                      alt="Company logo preview"
+                      fill
+                      sizes="96px"
+                      className="object-cover"
+                    />
                   ) : (
                     <ImagePlus className="h-8 w-8 text-muted-foreground/40" />
                   )}

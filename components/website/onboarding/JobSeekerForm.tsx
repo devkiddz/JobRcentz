@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { BriefcaseBusiness, FileText, Globe, ImagePlus, Loader2, Upload, UserRound } from 'lucide-react';
-import { saveJobSeekerProfile } from '@/server/actions/onboarding/saveJobSeekerProfile';
+import { saveJobSeekerProfile } from '@/server/actions/onboarding/jobseeker/saveJobSeekerProfile';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +16,7 @@ import { LocationPicker } from './LocationPicker';
 
 import { JOB_SEEKER_FORM_SCHEMA, type JobSeekerFormValues } from '@/server/utils/zodSchemas';
 
-import type { JobSeekerProfileData } from '@/server/actions/onboarding/getJobSeekerProfile';
+import type { JobSeekerProfileData } from '@/server/actions/onboarding/jobseeker/getJobSeekerProfile';
 
 interface JobSeekerFormProps {
   onBack: () => void;
@@ -29,6 +30,7 @@ const SOCIAL_ICON_CLASS = 'absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text
 export default function JobSeekerForm({ onBack, initialProfile }: JobSeekerFormProps) {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cvInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const existingProfile = initialProfile.profile;
   const initialPhotoUrl = existingProfile?.profilePhotoUrl ?? null;
@@ -44,30 +46,18 @@ export default function JobSeekerForm({ onBack, initialProfile }: JobSeekerFormP
 
     defaultValues: {
       fullName: initialProfile.user.name ?? '',
-
       headline: existingProfile?.headline ?? '',
-
       location: existingProfile?.location ?? '',
-
       bio: existingProfile?.bio ?? '',
-
       currentRole: existingProfile?.currentRole ?? '',
-
       yearsOfExperience:
         existingProfile?.yearsOfExperience != null ? String(existingProfile.yearsOfExperience) : '',
-
       skills: existingProfile?.skills?.join(', ') ?? '',
-
       portfolio: existingProfile?.portfolio ?? '',
-
       linkedin: existingProfile?.linkedin ?? '',
-
       github: existingProfile?.github ?? '',
-
       x: existingProfile?.x ?? '',
-
       profilePhoto: undefined,
-
       cv: undefined
     }
   });
@@ -99,18 +89,25 @@ export default function JobSeekerForm({ onBack, initialProfile }: JobSeekerFormP
       const formData = new FormData();
 
       formData.append('fullName', values.fullName);
+
       formData.append('headline', values.headline);
+
       formData.append('location', values.location);
+
       formData.append('bio', values.bio);
 
       formData.append('currentRole', values.currentRole ?? '');
+
       formData.append('yearsOfExperience', values.yearsOfExperience ?? '');
 
       formData.append('skills', values.skills ?? '');
 
       formData.append('portfolio', values.portfolio ?? '');
+
       formData.append('linkedin', values.linkedin ?? '');
+
       formData.append('github', values.github ?? '');
+
       formData.append('x', values.x ?? '');
 
       formData.append('removeProfilePhoto', String(photoRemoved));
@@ -127,12 +124,21 @@ export default function JobSeekerForm({ onBack, initialProfile }: JobSeekerFormP
 
       const result = await saveJobSeekerProfile(formData);
 
-      console.log(result);
+      if (!result.success) {
+        throw new Error('Unable to save job seeker profile.');
+      }
+
+      /*
+       * Account type has now been established.
+       * Leave onboarding immediately.
+       */
+      router.push('/dashboard');
+
+      router.refresh();
     } catch (error) {
       console.error('Job seeker profile submission failed:', error);
     }
   }
-
   /* ========================================================================= */
   /* Photo                                                                     */
   /* ========================================================================= */

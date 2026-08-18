@@ -7,8 +7,8 @@ import OnboardingMessage from './OnboardingMessage';
 import CompanyForm from './CompanyForm';
 import JobSeekerForm from './JobSeekerForm';
 
-import type { JobSeekerProfileData } from '@/server/actions/onboarding/getJobSeekerProfile';
-import { CompanyProfileData } from '@/server/actions/companies/getCompanyProfile';
+import type { JobSeekerProfileData } from '@/server/actions/onboarding/jobseeker/getJobSeekerProfile';
+import type { CompanyProfileData } from '@/server/actions/onboarding/companies/getCompanyProfile';
 
 type UserSelectionType = 'company' | 'jobseeker' | null;
 
@@ -52,6 +52,7 @@ export default function OnboardingForm({
         if (userType === 'jobseeker') {
           return <JobSeekerForm onBack={handleBack} initialProfile={initialJobSeekerProfile} />;
         }
+
         return null;
 
       default:

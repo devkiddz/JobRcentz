@@ -12,6 +12,7 @@ datasource db {
 /* ========================================================================= */
 
 enum UserRole {
+  UNASSIGNED
   JOB_SEEKER
   EMPLOYER
   ADMIN
@@ -48,6 +49,18 @@ enum ApplicationStatus {
   WITHDRAWN
 }
 
+enum OnboardingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum JobApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 /* ========================================================================= */
 /* USER                                                                      */
 /* ========================================================================= */
@@ -59,7 +72,7 @@ model User {
   emailVerified Boolean  @default(false)
   image         String?
 
-  role UserRole @default(JOB_SEEKER)
+  role UserRole @default(UNASSIGNED)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -86,6 +99,8 @@ model JobSeekerProfile {
 
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  onboardingStatus OnboardingStatus @default(PENDING)
 
   headline String
   location String
@@ -115,6 +130,7 @@ model JobSeekerProfile {
 
   @@index([location])
   @@index([currentRole])
+  @@index([onboardingStatus])
   @@map("job_seeker_profile")
 }
 
@@ -127,6 +143,8 @@ model CompanyProfile {
 
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  onboardingStatus OnboardingStatus @default(PENDING)
 
   companyName        String
   companyWebsite     String?
@@ -154,6 +172,7 @@ model CompanyProfile {
   @@index([companyName])
   @@index([companyIndustry])
   @@index([companyLocation])
+  @@index([onboardingStatus])
   @@map("company_profile")
 }
 
@@ -186,8 +205,13 @@ model Job {
 
   status JobStatus @default(DRAFT)
 
+  approvalStatus JobApprovalStatus @default(PENDING)
+
   publishedAt DateTime?
   expiresAt   DateTime?
+
+  approvedAt DateTime?
+  rejectedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -198,6 +222,7 @@ model Job {
   @@index([companyId])
   @@index([postedById])
   @@index([status])
+  @@index([approvalStatus])
   @@index([location])
   @@index([workMode])
   @@index([employmentType])
@@ -219,7 +244,7 @@ model Application {
   applicant   User @relation(fields: [applicantId], references: [id], onDelete: Cascade)
 
   jobSeekerProfileId String
-jobSeekerProfile JobSeekerProfile @relation(fields: [jobSeekerProfileId], references: [id], onDelete: Cascade)
+  jobSeekerProfile JobSeekerProfile @relation(fields: [jobSeekerProfileId], references: [id], onDelete: Cascade)
 
   status ApplicationStatus @default(PENDING)
 

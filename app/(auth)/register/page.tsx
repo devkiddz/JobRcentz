@@ -49,7 +49,7 @@ export default function RegisterPage() {
         name,
         email,
         password,
-        callbackURL: '/'
+        callbackURL: '/onboarding'
       });
 
       if (error) {
@@ -57,7 +57,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push('/');
+      router.replace('/onboarding');
       router.refresh();
     } catch {
       setError('Something went wrong. Please try again.');
@@ -73,14 +73,14 @@ export default function RegisterPage() {
     try {
       await authClient.signIn.social({
         provider,
-        callbackURL: '/'
+        callbackURL: '/onboarding'
       });
     } catch {
       setError(`Unable to continue with ${provider === 'google' ? 'Google' : 'GitHub'}. Please try again.`);
+
       setSocialLoading(null);
     }
   }
-
   const isBusy = isLoading || socialLoading !== null;
 
   return (
