@@ -17,6 +17,7 @@ const sidebarVariants: Variants = {
     opacity: 0,
     x: -16
   },
+
   visible: {
     opacity: 1,
     x: 0,
@@ -32,6 +33,7 @@ const headerVariants: Variants = {
     opacity: 0,
     y: -10
   },
+
   visible: {
     opacity: 1,
     y: 0,
@@ -48,6 +50,7 @@ const contentVariants: Variants = {
     opacity: 0,
     y: 16
   },
+
   visible: {
     opacity: 1,
     y: 0,
@@ -63,7 +66,7 @@ export default function DashboardShell({ children, user }: DashboardShellProps) 
   return (
     <div className="min-h-screen bg-background">
       <motion.div variants={sidebarVariants} initial="hidden" animate="visible">
-        <DashboardSidebar />
+        <DashboardSidebar user={user} />
       </motion.div>
 
       <div className="lg:pl-64">

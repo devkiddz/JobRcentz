@@ -57,7 +57,10 @@ export default function LogoContainer({ className, href = '/', spin = 0 }: LogoC
   }, [spin]);
 
   return (
-    <Link href={href} aria-label="Job Rcentz home" className={cn('flex items-center', className)}>
+    <Link
+      href={href}
+      aria-label="Job Rcentz home"
+      className={cn('flex items-center justify-start', className)}>
       <motion.div
         animate={{ rotateY: rotation }}
         transition={{

@@ -162,7 +162,8 @@ export function CreateJobForm() {
       )}
 
       {/* Actions */}
-      <section className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      {/* Actions */}
+      <section className="flex flex-col-reverse gap-3 border-t pt-6 sm:flex-row sm:justify-end">
         <button
           type="button"
           disabled={isPending}
@@ -173,7 +174,7 @@ export function CreateJobForm() {
 
             submit(new FormData(form), 'DRAFT');
           }}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-md border px-5 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50">
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border bg-background px-5 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 sm:w-auto">
           {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
           Save Draft
         </button>
@@ -181,7 +182,7 @@ export function CreateJobForm() {
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50">
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50 sm:w-auto">
           {isPending ? (
             <>
               <Loader2 className="size-4 animate-spin" />

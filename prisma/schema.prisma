@@ -7,21 +7,705 @@ datasource db {
   provider = "postgresql"
 }
 
-/* ========================================================================= */
-/* ENUMS                                                                     */
-/* ========================================================================= */
+model User {
+  id                  String             @id
+  name                String
+  email               String             @unique
+  emailVerified       Boolean            @default(false)
+  image               String?
+  role                UserRole           @default(UNASSIGNED)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  accounts            Account[]
+  aiConversations     AIConversation[]
+  aiMessages          AIMessage[]
+  applications        Application[]
+  company             CompanyProfile?
+  emails              Email[]
+  candidateInterviews Interview[]        @relation("CandidateInterviews")
+  employerInterviews  Interview[]        @relation("EmployerInterviews")
+  jobs                Job[]
+  invitationsReceived JobInvitation[]    @relation("InvitationRecipient")
+  invitationsSent     JobInvitation[]    @relation("InvitationSender")
+  jobSeeker           JobSeekerProfile?
+  notifications       Notification[]
+  payments            Payment[]
+  projectComments     PortfolioComment[]
+  projectLikes        PortfolioLike[]
+  projectRatings      PortfolioRating[]
+  profileRatingsGiven ProfileRating[]    @relation("ProfileRatingsGiven")
+  savedJobs           SavedJob[]
+  sessions            Session[]
+  subscriptions       Subscription[]
+  supportMessages     SupportMessage[]
+  supportTickets      SupportTicket[]
+  todos               Todo[]
+
+  @@index([role])
+  @@index([createdAt])
+  @@map("user")
+}
+
+model JobSeekerProfile {
+  id                   String                  @id @default(cuid())
+  userId               String                  @unique
+  headline             String
+  location             String
+  bio                  String
+  currentRole          String?
+  yearsOfExperience    Int?
+  skills               String[]                @default([])
+  linkedin             String?
+  github               String?
+  x                    String?
+  profilePhotoUrl      String?
+  profilePhotoPublicId String?
+  cvUrl                String?
+  cvName               String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  onboardingStatus     OnboardingStatus        @default(PENDING)
+  /// *
+  ///    * Profile reputation
+  averageRating        Float                   @default(0)
+  bannerPublicId       String?
+  bannerUrl            String?
+  isAvailable          Boolean                 @default(true)
+  isDiscoverable       Boolean                 @default(true)
+  profileViews         Int                     @default(0)
+  ratingCount          Int                     @default(0)
+  visibility           ProfileVisibility       @default(PUBLIC)
+  portfolio            String?
+  applications         Application[]
+  galleryImages        JobSeekerGalleryImage[]
+  user                 User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portfolioProjects    PortfolioProject[]
+  ratings              ProfileRating[]
+  savedJobs            SavedJob[]
+
+  @@index([location])
+  @@index([currentRole])
+  @@index([onboardingStatus])
+  @@index([visibility])
+  @@index([isDiscoverable])
+  @@index([isAvailable])
+  @@index([averageRating])
+  @@map("job_seeker_profile")
+}
+
+model JobSeekerGalleryImage {
+  id        String           @id @default(cuid())
+  profileId String
+  url       String
+  publicId  String?
+  alt       String?
+  caption   String?
+  sortOrder Int              @default(0)
+  createdAt DateTime         @default(now())
+  profile   JobSeekerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@index([sortOrder])
+  @@map("job_seeker_gallery_image")
+}
+
+model CompanyProfile {
+  id                  String                @id @default(cuid())
+  userId              String                @unique
+  companyName         String
+  companyWebsite      String?
+  companySize         String?
+  companyIndustry     String
+  companyDescription  String
+  companyLocation     String
+  companyAddress      String?
+  companyContactEmail String
+  companyContactPhone String?
+  companyLinkedIn     String?
+  companyX            String?
+  companyFacebook     String?
+  companyLogoUrl      String?
+  companyLogoPublicId String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  onboardingStatus    OnboardingStatus      @default(PENDING)
+  bannerPublicId      String?
+  bannerUrl           String?
+  isDiscoverable      Boolean               @default(true)
+  profileViews        Int                   @default(0)
+  visibility          ProfileVisibility     @default(PUBLIC)
+  galleryImages       CompanyGalleryImage[]
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs                Job[]
+
+  @@index([companyName])
+  @@index([companyIndustry])
+  @@index([companyLocation])
+  @@index([onboardingStatus])
+  @@index([visibility])
+  @@index([isDiscoverable])
+  @@map("company_profile")
+}
+
+model CompanyGalleryImage {
+  id        String         @id @default(cuid())
+  companyId String
+  url       String
+  publicId  String?
+  alt       String?
+  caption   String?
+  sortOrder Int            @default(0)
+  createdAt DateTime       @default(now())
+  company   CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([sortOrder])
+  @@map("company_gallery_image")
+}
+
+model PortfolioProject {
+  id            String             @id @default(cuid())
+  profileId     String
+  title         String
+  slug          String             @unique
+  description   String
+  category      String?
+  skills        String[]           @default([])
+  projectUrl    String?
+  githubUrl     String?
+  visibility    ProjectVisibility  @default(PUBLIC)
+  status        ProjectStatus      @default(DRAFT)
+  featured      Boolean            @default(false)
+  likesCount    Int                @default(0)
+  commentsCount Int                @default(0)
+  ratingCount   Int                @default(0)
+  averageRating Float              @default(0)
+  viewsCount    Int                @default(0)
+  publishedAt   DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  comments      PortfolioComment[]
+  images        PortfolioImage[]
+  likes         PortfolioLike[]
+  profile       JobSeekerProfile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  ratings       PortfolioRating[]
+
+  @@index([profileId])
+  @@index([status])
+  @@index([visibility])
+  @@index([category])
+  @@index([featured])
+  @@index([averageRating])
+  @@index([createdAt])
+  @@map("portfolio_project")
+}
+
+model PortfolioImage {
+  id        String           @id @default(cuid())
+  projectId String
+  url       String
+  publicId  String?
+  alt       String?
+  caption   String?
+  sortOrder Int              @default(0)
+  createdAt DateTime         @default(now())
+  project   PortfolioProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([sortOrder])
+  @@map("portfolio_image")
+}
+
+model PortfolioLike {
+  id        String           @id @default(cuid())
+  projectId String
+  userId    String
+  createdAt DateTime         @default(now())
+  project   PortfolioProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("portfolio_like")
+}
+
+model PortfolioComment {
+  id        String           @id @default(cuid())
+  projectId String
+  userId    String
+  body      String
+  isEdited  Boolean          @default(false)
+  isDeleted Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  project   PortfolioProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("portfolio_comment")
+}
+
+model PortfolioRating {
+  id        String           @id @default(cuid())
+  projectId String
+  userId    String
+  rating    Int
+  review    String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  project   PortfolioProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@index([rating])
+  @@map("portfolio_rating")
+}
+
+model ProfileRating {
+  id        String           @id @default(cuid())
+  profileId String
+  raterId   String
+  rating    Int
+  review    String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  profile   JobSeekerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  rater     User             @relation("ProfileRatingsGiven", fields: [raterId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, raterId])
+  @@index([profileId])
+  @@index([raterId])
+  @@index([rating])
+  @@map("profile_rating")
+}
+
+model Job {
+  id             String            @id @default(cuid())
+  companyId      String
+  postedById     String
+  title          String
+  description    String
+  requirements   String?
+  location       String?
+  workMode       WorkMode          @default(ONSITE)
+  employmentType EmploymentType
+  salaryMin      Decimal?
+  salaryMax      Decimal?
+  salaryCurrency String?           @default("NGN")
+  skills         String[]          @default([])
+  status         JobStatus         @default(DRAFT)
+  publishedAt    DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  approvalStatus JobApprovalStatus @default(PENDING)
+  approvedAt     DateTime?
+  rejectedAt     DateTime?
+  applications   Application[]
+  interviews     Interview[]
+  company        CompanyProfile    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  postedBy       User              @relation(fields: [postedById], references: [id])
+  invitations    JobInvitation[]
+  savedBy        SavedJob[]
+
+  @@index([companyId])
+  @@index([postedById])
+  @@index([status])
+  @@index([approvalStatus])
+  @@index([location])
+  @@index([workMode])
+  @@index([employmentType])
+  @@index([createdAt])
+  @@map("job")
+}
+
+model Application {
+  id                 String            @id @default(cuid())
+  jobId              String
+  applicantId        String
+  jobSeekerProfileId String
+  status             ApplicationStatus @default(PENDING)
+  coverLetter        String?
+  cvUrl              String?
+  cvName             String?
+  appliedAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  applicant          User              @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  job                Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobSeekerProfile   JobSeekerProfile  @relation(fields: [jobSeekerProfileId], references: [id], onDelete: Cascade)
+  interviews         Interview[]
+
+  @@unique([jobId, applicantId])
+  @@index([jobId])
+  @@index([applicantId])
+  @@index([jobSeekerProfileId])
+  @@index([status])
+  @@map("application")
+}
+
+model SavedJob {
+  id                 String           @id @default(cuid())
+  jobId              String
+  userId             String
+  jobSeekerProfileId String
+  createdAt          DateTime         @default(now())
+  job                Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobSeekerProfile   JobSeekerProfile @relation(fields: [jobSeekerProfileId], references: [id], onDelete: Cascade)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, userId])
+  @@index([userId])
+  @@index([jobId])
+  @@index([jobSeekerProfileId])
+  @@map("saved_job")
+}
+
+model JobInvitation {
+  id          String              @id @default(cuid())
+  jobId       String
+  senderId    String
+  recipientId String
+  message     String?
+  status      JobInvitationStatus @default(PENDING)
+  expiresAt   DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  job         Job                 @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  recipient   User                @relation("InvitationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  sender      User                @relation("InvitationSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, recipientId])
+  @@index([jobId])
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([status])
+  @@map("job_invitation")
+}
+
+model Interview {
+  id              String          @id @default(cuid())
+  jobId           String
+  applicationId   String?
+  employerId      String
+  candidateId     String
+  status          InterviewStatus @default(SCHEDULED)
+  scheduledAt     DateTime
+  durationMinutes Int?
+  meetingUrl      String?
+  location        String?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  application     Application?    @relation(fields: [applicationId], references: [id])
+  candidate       User            @relation("CandidateInterviews", fields: [candidateId], references: [id], onDelete: Cascade)
+  employer        User            @relation("EmployerInterviews", fields: [employerId], references: [id], onDelete: Cascade)
+  job             Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([applicationId])
+  @@index([employerId])
+  @@index([candidateId])
+  @@index([scheduledAt])
+  @@map("interview")
+}
+
+model Notification {
+  id        String               @id @default(cuid())
+  userId    String
+  type      NotificationType
+  priority  NotificationPriority @default(NORMAL)
+  title     String
+  message   String
+  href      String?
+  isRead    Boolean              @default(false)
+  readAt    DateTime?
+  createdAt DateTime             @default(now())
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notification")
+}
+
+model Email {
+  id         String      @id @default(cuid())
+  userId     String?
+  toEmail    String
+  subject    String
+  body       String
+  status     EmailStatus @default(PENDING)
+  providerId String?
+  error      String?
+  sentAt     DateTime?
+  createdAt  DateTime    @default(now())
+  user       User?       @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([toEmail])
+  @@index([status])
+  @@index([createdAt])
+  @@map("email")
+}
+
+model SupportTicket {
+  id         String                @id @default(cuid())
+  userId     String
+  subject    String
+  status     SupportTicketStatus   @default(OPEN)
+  priority   SupportTicketPriority @default(NORMAL)
+  category   String?
+  resolvedAt DateTime?
+  closedAt   DateTime?
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  messages   SupportMessage[]
+  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+  @@map("support_ticket")
+}
+
+model SupportMessage {
+  id         String               @id @default(cuid())
+  ticketId   String
+  userId     String?
+  senderType SupportMessageSender
+  body       String
+  createdAt  DateTime             @default(now())
+  ticket     SupportTicket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user       User?                @relation(fields: [userId], references: [id])
+
+  @@index([ticketId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("support_message")
+}
+
+model AIConversation {
+  id        String             @id @default(cuid())
+  userId    String
+  type      AIConversationType @default(GENERAL)
+  title     String?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  AIMessage[]
+
+  @@index([userId])
+  @@index([type])
+  @@index([updatedAt])
+  @@map("ai_conversation")
+}
+
+model AIMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  userId         String?
+  role           AIMessageRole
+  content        String
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User?          @relation(fields: [userId], references: [id])
+
+  @@index([conversationId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("ai_message")
+}
+
+model Todo {
+  id          String       @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  status      TodoStatus   @default(TODO)
+  priority    TodoPriority @default(MEDIUM)
+  dueAt       DateTime?
+  completedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([dueAt])
+  @@map("todo")
+}
+
+model SubscriptionPlan {
+  id                    String               @id @default(cuid())
+  name                  String
+  slug                  String               @unique
+  description           String?
+  type                  SubscriptionPlanType
+  audience              SubscriptionAudience @default(ALL)
+  interval              SubscriptionInterval
+  price                 Decimal
+  currency              String               @default("NGN")
+  trialDays             Int                  @default(0)
+  /// *
+  ///    * -----------------------------------------------------------------------
+  /// /**
+  ///    * /* Feature limits
+  /// /**
+  ///    * /* -----------------------------------------------------------------------
+  maxActiveJobs         Int?
+  maxApplicationsPerJob Int?
+  maxPortfolioProjects  Int?
+  maxGalleryImages      Int?
+  maxAIRequests         Int?
+  maxJobInvitations     Int?
+  /// *
+  ///    * -----------------------------------------------------------------------
+  /// /**
+  ///    * /* Feature access
+  /// /**
+  ///    * /* -----------------------------------------------------------------------
+  featuredProfile       Boolean              @default(false)
+  featuredJobs          Boolean              @default(false)
+  advancedAnalytics     Boolean              @default(false)
+  prioritySupport       Boolean              @default(false)
+  isActive              Boolean              @default(true)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  subscriptions         Subscription[]
+
+  @@index([type])
+  @@index([audience])
+  @@index([isActive])
+  @@map("subscription_plan")
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  userId             String
+  planId             String
+  status             SubscriptionStatus @default(TRIALING)
+  provider           String?
+  providerId         String?
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean            @default(false)
+  cancelledAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  payments           Payment[]
+  plan               SubscriptionPlan   @relation(fields: [planId], references: [id])
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+  @@index([currentPeriodEnd])
+  @@map("subscription")
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  userId         String
+  subscriptionId String?
+  amount         Decimal
+  currency       String        @default("NGN")
+  provider       String?
+  reference      String?       @unique
+  status         PaymentStatus @default(PENDING)
+  metadata       Json?
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("payment")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
 
 enum UserRole {
-  UNASSIGNED
   JOB_SEEKER
   EMPLOYER
   ADMIN
+  UNASSIGNED
+}
+
+enum ProfileVisibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
+enum OnboardingStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum JobStatus {
   DRAFT
   PUBLISHED
   CLOSED
+}
+
+enum JobApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum EmploymentType {
@@ -49,314 +733,154 @@ enum ApplicationStatus {
   WITHDRAWN
 }
 
-enum OnboardingStatus {
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum ProjectVisibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
+enum ProjectStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
+enum NotificationType {
+  SYSTEM
+  APPLICATION
+  APPLICATION_STATUS
+  JOB
+  JOB_INVITATION
+  INTERVIEW
+  PROJECT
+  COMMENT
+  LIKE
+  RATING
+  MESSAGE
+  SUBSCRIPTION
+  PAYMENT
+  SUPPORT
+  AI
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum EmailStatus {
   PENDING
-  APPROVED
-  REJECTED
+  SENT
+  FAILED
+  CANCELLED
 }
 
-enum JobApprovalStatus {
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_USER
+  RESOLVED
+  CLOSED
+}
+
+enum SupportTicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum SupportMessageSender {
+  USER
+  AGENT
+  AI
+  SYSTEM
+}
+
+enum AIConversationType {
+  GENERAL
+  RESUME
+  APPLICATION
+  JOB_SEARCH
+  JOB_DESCRIPTION
+  HIRING
+  PORTFOLIO
+  SUPPORT
+}
+
+enum AIMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum TodoStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TodoPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum SubscriptionInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+  PAUSED
+}
+
+enum PaymentStatus {
   PENDING
-  APPROVED
-  REJECTED
+  SUCCESS
+  FAILED
+  REFUNDED
 }
 
-/* ========================================================================= */
-/* USER                                                                      */
-/* ========================================================================= */
-
-model User {
-  id            String   @id
-  name          String
-  email         String   @unique
-  emailVerified Boolean  @default(false)
-  image         String?
-
-  role UserRole @default(UNASSIGNED)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  sessions Session[]
-  accounts Account[]
-
-  jobSeeker JobSeekerProfile?
-  company   CompanyProfile?
-
-  jobs         Job[]
-  applications Application[]
-  savedJobs    SavedJob[]
-
-  @@map("user")
+enum SubscriptionPlanType {
+  FREE
+  PROFESSIONAL
+  BUSINESS
+  PREMIUM
 }
 
-/* ========================================================================= */
-/* JOB SEEKER PROFILE                                                        */
-/* ========================================================================= */
-
-model JobSeekerProfile {
-  id String @id @default(cuid())
-
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  onboardingStatus OnboardingStatus @default(PENDING)
-
-  headline String
-  location String
-  bio      String
-
-  currentRole       String?
-  yearsOfExperience Int?
-
-  skills String[] @default([])
-
-  portfolio String?
-  linkedin  String?
-  github    String?
-  x         String?
-
-  profilePhotoUrl      String?
-  profilePhotoPublicId String?
-
-  cvUrl  String?
-  cvName String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  applications Application[]
-  savedJobs    SavedJob[]
-
-  @@index([location])
-  @@index([currentRole])
-  @@index([onboardingStatus])
-  @@map("job_seeker_profile")
+enum SubscriptionAudience {
+  JOB_SEEKER
+  EMPLOYER
+  ALL
 }
 
-/* ========================================================================= */
-/* COMPANY / EMPLOYER PROFILE                                                */
-/* ========================================================================= */
-
-model CompanyProfile {
-  id String @id @default(cuid())
-
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  onboardingStatus OnboardingStatus @default(PENDING)
-
-  companyName        String
-  companyWebsite     String?
-  companySize        String?
-  companyIndustry    String
-  companyDescription String
-  companyLocation    String
-  companyAddress     String?
-
-  companyContactEmail String
-  companyContactPhone String?
-
-  companyLinkedIn String?
-  companyX        String?
-  companyFacebook String?
-
-  companyLogoUrl      String?
-  companyLogoPublicId String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  jobs Job[]
-
-  @@index([companyName])
-  @@index([companyIndustry])
-  @@index([companyLocation])
-  @@index([onboardingStatus])
-  @@map("company_profile")
-}
-
-/* ========================================================================= */
-/* JOB                                                                       */
-/* ========================================================================= */
-
-model Job {
-  id String @id @default(cuid())
-
-  companyId String
-  company   CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  postedById String
-  postedBy   User @relation(fields: [postedById], references: [id], onDelete: Restrict)
-
-  title        String
-  description  String
-  requirements String?
-
-  location       String?
-  workMode       WorkMode       @default(ONSITE)
-  employmentType EmploymentType
-
-  salaryMin      Decimal?
-  salaryMax      Decimal?
-  salaryCurrency String? @default("NGN")
-
-  skills String[] @default([])
-
-  status JobStatus @default(DRAFT)
-
-  approvalStatus JobApprovalStatus @default(PENDING)
-
-  publishedAt DateTime?
-  expiresAt   DateTime?
-
-  approvedAt DateTime?
-  rejectedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  applications Application[]
-  savedBy      SavedJob[]
-
-  @@index([companyId])
-  @@index([postedById])
-  @@index([status])
-  @@index([approvalStatus])
-  @@index([location])
-  @@index([workMode])
-  @@index([employmentType])
-  @@index([createdAt])
-  @@map("job")
-}
-
-/* ========================================================================= */
-/* APPLICATION                                                               */
-/* ========================================================================= */
-
-model Application {
-  id String @id @default(cuid())
-
-  jobId String
-  job   Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
-
-  applicantId String
-  applicant   User @relation(fields: [applicantId], references: [id], onDelete: Cascade)
-
-  jobSeekerProfileId String
-  jobSeekerProfile JobSeekerProfile @relation(fields: [jobSeekerProfileId], references: [id], onDelete: Cascade)
-
-  status ApplicationStatus @default(PENDING)
-
-  coverLetter String?
-
-  cvUrl  String?
-  cvName String?
-
-  appliedAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([jobId, applicantId])
-  @@index([jobId])
-  @@index([applicantId])
-  @@index([jobSeekerProfileId])
-  @@index([status])
-  @@map("application")
-}
-
-/* ========================================================================= */
-/* SAVED JOB                                                                 */
-/* ========================================================================= */
-
-model SavedJob {
-  id String @id @default(cuid())
-
-  jobId String
-  job   Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
-
-  userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  jobSeekerProfileId String
-  jobSeekerProfile JobSeekerProfile @relation(fields: [jobSeekerProfileId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@unique([jobId, userId])
-  @@index([userId])
-  @@index([jobId])
-  @@index([jobSeekerProfileId])
-  @@map("saved_job")
-}
-
-/* ========================================================================= */
-/* BETTER AUTH — SESSION                                                     */
-/* ========================================================================= */
-
-model Session {
-  id String @id
-
-  expiresAt DateTime
-  token     String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  ipAddress String?
-  userAgent String?
-
-  userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([token])
-  @@index([userId])
-  @@map("session")
-}
-
-/* ========================================================================= */
-/* BETTER AUTH — ACCOUNT                                                     */
-/* ========================================================================= */
-
-model Account {
-  id String @id
-
-  accountId  String
-  providerId String
-
-  userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  accessToken  String?
-  refreshToken String?
-  idToken      String?
-
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-
-  scope    String?
-  password String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-  @@map("account")
-}
-
-/* ========================================================================= */
-/* BETTER AUTH — VERIFICATION                                                */
-/* ========================================================================= */
-
-model Verification {
-  id String @id
-
-  identifier String
-  value      String
-  expiresAt  DateTime
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([identifier])
-  @@map("verification")
+enum JobInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
 }
