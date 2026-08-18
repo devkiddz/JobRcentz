@@ -1,9 +1,10 @@
+
 'use server';
 
 import { requireAuth } from '@/server/auth/requireAuth';
 import { prisma } from '@/server/db/prisma';
 
-export async function getEmployerJobs() {
+export async function getEmployerJobById(id: string) {
   const user = await requireAuth();
 
   const dbUser = await prisma.user.findUnique({
@@ -39,53 +40,53 @@ export async function getEmployerJobs() {
     throw new Error('Company profile not found.');
   }
 
-  const jobs = await prisma.job.findMany({
+  const job = await prisma.job.findFirst({
     where: {
+      id,
       companyId: company.id
     },
-    orderBy: {
-      createdAt: 'desc'
-    },
     select: {
-    id: true,
-    title: true,
-    description: true,
-    requirements: true,
+      id: true,
+      title: true,
+      description: true,
+      requirements: true,
 
-    location: true,
-    workMode: true,
-    employmentType: true,
+      location: true,
+      workMode: true,
+      employmentType: true,
 
-    salaryMin: true,
-    salaryMax: true,
-    salaryCurrency: true,
+      salaryMin: true,
+      salaryMax: true,
+      salaryCurrency: true,
 
-    skills: true,
+      skills: true,
 
-    status: true,
-    approvalStatus: true,
+      status: true,
+      approvalStatus: true,
 
-    publishedAt: true,
-    expiresAt: true,
+      publishedAt: true,
+      expiresAt: true,
+      approvedAt: true,
+      rejectedAt: true,
 
-    createdAt: true,
-    updatedAt: true,
+      createdAt: true,
+      updatedAt: true,
 
-  _count: {
-    select: {
-      applications: true
+      _count: {
+        select: {
+          applications: true
+        }
+      }
     }
-  }
-}
   });
+
+  if (!job) {
+    return null;
+  }
 
   return {
     user: dbUser,
     company,
-    jobs
+    job
   };
 }
-
-export type EmployerJobsData = Awaited<
-  ReturnType<typeof getEmployerJobs>
->;

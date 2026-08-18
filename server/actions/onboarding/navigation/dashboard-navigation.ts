@@ -1,3 +1,4 @@
+
 import {
   Bell,
   BriefcaseBusiness,
@@ -36,22 +37,22 @@ const employerNavigation: NavigationGroup[] = [
       },
       {
         label: 'Jobs',
-        href: '/dashboard/jobs',
+        href: '/dashboard/employer/jobs',
         icon: BriefcaseBusiness
       },
       {
         label: 'Applications',
-        href: '/dashboard/applications',
+        href: '/dashboard/employer/applications',
         icon: ClipboardList
       },
       {
         label: 'Candidates',
-        href: '/dashboard/candidates',
+        href: '/dashboard/employer/candidates',
         icon: UsersRound
       },
       {
         label: 'Interviews',
-        href: '/dashboard/interviews',
+        href: '/dashboard/employer/interviews',
         icon: CalendarDays
       }
     ]
@@ -66,7 +67,7 @@ const employerNavigation: NavigationGroup[] = [
       },
       {
         label: 'Invitations',
-        href: '/dashboard/invitations',
+        href: '/dashboard/employer/invitations',
         icon: FileText
       },
       {

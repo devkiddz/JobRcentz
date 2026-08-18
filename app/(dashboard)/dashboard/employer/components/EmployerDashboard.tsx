@@ -1,7 +1,7 @@
 import EmployerProfileHero from './EmployerProfileHero';
 import EmployerStats from './EmployerStats';
-import RecentJobs from './RecentJobs';
 import RecentApplications from './RecentApplications';
+import RecentJobs from './RecentJobs';
 import UpcomingInterviews from './UpcomingInterviews';
 import EmployerCompanyCard from './EmployerCompanyCard';
 
@@ -12,26 +12,28 @@ interface EmployerDashboardProps {
 }
 
 export default function EmployerDashboard({ dashboard }: EmployerDashboardProps) {
+  const { user, company, profile, stats, recentJobs, recentApplications, upcomingInterviews } = dashboard;
+
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6">
-      <EmployerProfileHero user={dashboard.user} company={dashboard.company} profile={dashboard.profile} />
+    <div className="space-y-8">
+      {/* Employer identity */}
+      <EmployerProfileHero user={user} company={company} profile={profile} />
 
-      <EmployerStats stats={dashboard.stats} />
+      {/* Analytics */}
+      <EmployerStats stats={stats} />
 
+      {/* Jobs + company */}
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <RecentJobs jobs={dashboard.recentJobs} />
+        <RecentJobs jobs={recentJobs} />
 
-        <EmployerCompanyCard
-          company={dashboard.company}
-          stats={dashboard.stats}
-          profile={dashboard.profile}
-        />
+        <EmployerCompanyCard company={company} stats={stats} profile={profile} />
       </section>
 
+      {/* Applications + interviews */}
       <section className="grid gap-6 xl:grid-cols-2">
-        <RecentApplications applications={dashboard.recentApplications} />
+        <RecentApplications applications={recentApplications} />
 
-        <UpcomingInterviews interviews={dashboard.upcomingInterviews} />
+        <UpcomingInterviews interviews={upcomingInterviews} />
       </section>
     </div>
   );

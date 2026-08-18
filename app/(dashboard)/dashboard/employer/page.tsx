@@ -11,5 +11,9 @@ export default async function EmployerDashboardPage() {
     redirect('/dashboard');
   }
 
-  return <EmployerDashboard dashboard={dashboard} />;
+  return (
+    <main className="mx-auto w-full max-w-7xl space-y-8 p-4 sm:p-6 lg:p-8">
+      <EmployerDashboard dashboard={dashboard} />
+    </main>
+  );
 }

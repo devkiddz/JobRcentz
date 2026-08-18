@@ -18,14 +18,14 @@ interface DashboardHeaderProps {
 const headerContentVariants: Variants = {
   hidden: {
     opacity: 0,
-    y: -8
+    y: -6
   },
 
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.35,
+      duration: 0.3,
       ease: 'easeOut'
     }
   }
@@ -40,74 +40,107 @@ function getPageContext(pathname: string): PageContext {
   if (pathname === '/dashboard') {
     return {
       title: 'Overview',
-      description: 'Your hiring workspace at a glance.'
+      description: 'Your workspace at a glance.'
     };
   }
 
-  if (pathname.startsWith('/dashboard/jobs')) {
+  if (pathname === '/dashboard/employer/jobs' || pathname.startsWith('/dashboard/employer/jobs/')) {
     return {
       title: 'Jobs',
       description: 'Manage your company job postings.'
     };
   }
 
-  if (pathname.startsWith('/dashboard/applications')) {
+  if (
+    pathname === '/dashboard/employer/applications' ||
+    pathname.startsWith('/dashboard/employer/applications/')
+  ) {
     return {
       title: 'Applications',
       description: 'Review and manage candidate applications.'
     };
   }
 
-  if (pathname.startsWith('/dashboard/candidates')) {
+  if (
+    pathname === '/dashboard/employer/candidates' ||
+    pathname.startsWith('/dashboard/employer/candidates/')
+  ) {
     return {
       title: 'Candidates',
       description: 'Discover and manage potential candidates.'
     };
   }
 
-  if (pathname.startsWith('/dashboard/interviews')) {
+  if (
+    pathname === '/dashboard/employer/interviews' ||
+    pathname.startsWith('/dashboard/employer/interviews/')
+  ) {
     return {
       title: 'Interviews',
       description: 'Manage your upcoming candidate interviews.'
     };
   }
 
-  if (pathname.startsWith('/dashboard/messages')) {
-    return {
-      title: 'Messages',
-      description: 'Stay connected with candidates and employers.'
-    };
-  }
-
-  if (pathname.startsWith('/dashboard/invitations')) {
-    return {
-      title: 'Invitations',
-      description: 'Manage your candidate invitations.'
-    };
-  }
-
-  if (pathname.startsWith('/dashboard/notifications')) {
-    return {
-      title: 'Notifications',
-      description: 'Stay up to date with your JobMan activity.'
-    };
-  }
-
-  if (pathname.startsWith('/dashboard/employer/company')) {
+  if (pathname === '/dashboard/employer/company' || pathname.startsWith('/dashboard/employer/company/')) {
     return {
       title: 'Company Profile',
       description: 'Manage your company information and presence.'
     };
   }
 
-  if (pathname.startsWith('/dashboard/profile')) {
+  if (
+    pathname === '/dashboard/employer/invitations' ||
+    pathname.startsWith('/dashboard/employer/invitations/')
+  ) {
     return {
-      title: 'Profile',
-      description: 'Manage your personal account profile.'
+      title: 'Invitations',
+      description: 'Manage candidate invitations.'
     };
   }
 
-  if (pathname.startsWith('/dashboard/settings')) {
+  if (pathname === '/dashboard/jobs' || pathname.startsWith('/dashboard/jobs/')) {
+    return {
+      title: 'Jobs',
+      description: 'Discover and manage available opportunities.'
+    };
+  }
+
+  if (pathname === '/dashboard/applications' || pathname.startsWith('/dashboard/applications/')) {
+    return {
+      title: 'Applications',
+      description: 'Track your job applications.'
+    };
+  }
+
+  if (pathname === '/dashboard/interviews' || pathname.startsWith('/dashboard/interviews/')) {
+    return {
+      title: 'Interviews',
+      description: 'Keep track of your upcoming interviews.'
+    };
+  }
+
+  if (pathname === '/dashboard/messages' || pathname.startsWith('/dashboard/messages/')) {
+    return {
+      title: 'Messages',
+      description: 'Stay connected with your JobMan network.'
+    };
+  }
+
+  if (pathname === '/dashboard/notifications' || pathname.startsWith('/dashboard/notifications/')) {
+    return {
+      title: 'Notifications',
+      description: 'Stay up to date with your JobMan activity.'
+    };
+  }
+
+  if (pathname === '/dashboard/profile' || pathname.startsWith('/dashboard/profile/')) {
+    return {
+      title: 'Profile',
+      description: 'Manage your personal profile.'
+    };
+  }
+
+  if (pathname === '/dashboard/settings' || pathname.startsWith('/dashboard/settings/')) {
     return {
       title: 'Settings',
       description: 'Manage your account preferences.'
@@ -116,7 +149,7 @@ function getPageContext(pathname: string): PageContext {
 
   return {
     title: 'Dashboard',
-    description: 'Manage your JobMan account.'
+    description: 'Manage your JobMan workspace.'
   };
 }
 
@@ -140,16 +173,11 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
   const pathname = usePathname();
 
   const displayName = user.name?.trim() || 'User';
-
   const roleLabel = getRoleLabel(user.role);
 
-  /*
-   * Resolve the user's actual identity.
-   */
   const profileImage = user.jobSeeker?.profilePhotoUrl ?? user.company?.companyLogoUrl ?? user.image;
 
-  const jobTitle =
-    user.jobSeeker?.currentRole ?? user.jobSeeker?.headline ?? user.company?.companyIndustry ?? null;
+  const jobTitle = user.jobSeeker?.currentRole ?? user.jobSeeker?.headline ?? null;
 
   const companyName = user.company?.companyName ?? null;
 
@@ -171,61 +199,64 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
   const showEmployerQuickAction = user.role === 'EMPLOYER';
 
   return (
-    <header className="sticky top-0 z-30 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <motion.div
         variants={headerContentVariants}
         initial="hidden"
         animate="visible"
-        className="flex h-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        {/* ====================================================== */}
+        className="flex min-h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         {/* Page context */}
-        {/* ====================================================== */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">{page.title}</h1>
+          </div>
 
-        <div className="min-w-0">
-          <h1 className="truncate text-sm font-semibold leading-none">{page.title}</h1>
-
-          <p className="mt-1 hidden truncate text-xs text-muted-foreground sm:block">{page.description}</p>
+          <p className="mt-0.5 hidden max-w-2xl truncate text-xs text-muted-foreground sm:block">
+            {page.description}
+          </p>
         </div>
 
-        {/* ====================================================== */}
         {/* Right side */}
-        {/* ====================================================== */}
-
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           {/* Search */}
-
-          <Button type="button" variant="ghost" size="icon" className="size-9" aria-label="Search">
+          {/* <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-9 rounded-lg text-muted-foreground hover:text-foreground"
+            aria-label="Search">
             <Search className="size-4" />
-          </Button>
+          </Button> */}
 
-          {/* ================================================== */}
           {/* Employer quick action */}
-          {/* ================================================== */}
-
           {showEmployerQuickAction && (
             <Link
-              href="/dashboard/jobs/create"
+              href="/dashboard/employer/jobs/create"
+              aria-label="Post a new job"
+              title="Post a new job"
               className={buttonVariants({
-                size: 'sm',
-                className: 'hidden gap-2 sm:flex'
+                variant: 'outline',
+                size: 'icon',
+                className: 'size-9 rounded-lg shadow-sm'
               })}>
               <Plus className="size-4" />
-              Post Job
             </Link>
           )}
 
-          {/* ================================================== */}
+          {/* Divider */}
+          <div aria-hidden="true" className="mx-1 hidden h-7 w-px bg-border sm:block" />
+
           {/* Account identity */}
-          {/* ================================================== */}
-
-          <div className="flex items-center gap-3">
-            <div className="hidden min-w-0 text-right sm:block">
-              <p className="max-w-48 truncate text-sm font-medium">{displayName}</p>
-
-              <p className="max-w-48 truncate text-xs text-muted-foreground">{profileSubtitle}</p>
-            </div>
-
+          <div className="flex items-center gap-2 sm:gap-3">
             <UserHelperSheet user={userHelperData} />
+
+            <div className="hidden min-w-0 sm:block">
+              <p className="max-w-48 truncate text-sm font-medium leading-5">{displayName}</p>
+
+              <p className="max-w-48 truncate text-[11px] leading-4 text-muted-foreground">
+                {profileSubtitle}
+              </p>
+            </div>
           </div>
         </div>
       </motion.div>

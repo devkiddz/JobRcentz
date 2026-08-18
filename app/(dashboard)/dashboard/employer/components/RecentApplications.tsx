@@ -51,7 +51,7 @@ export default function RecentApplications({ applications }: RecentApplicationsP
         </div>
 
         <Link
-          href="/dashboard/applications"
+          href="/dashboard/employer/applications"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
           View all
           <ArrowRight className="size-3.5" />
@@ -80,7 +80,7 @@ export default function RecentApplications({ applications }: RecentApplicationsP
             return (
               <Link
                 key={application.id}
-                href={`/dashboard/applications/${application.id}`}
+                href={`/dashboard/employer/applications/${application.id}`}
                 className="flex items-center gap-4 p-5 transition-colors hover:bg-muted/30 sm:px-6">
                 <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted">
                   {profileImage ? (

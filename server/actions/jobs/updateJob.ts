@@ -1,9 +1,13 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
 
 import { requireAuth } from '@/server/auth/requireAuth';
 import { prisma } from '@/server/db/prisma';
+
+import { parseJobForm } from './jobForm';
+import { getEditLifecycle } from './jobEditLifecycle';
 
 type UpdateJobResult =
   | {
@@ -14,57 +18,6 @@ type UpdateJobResult =
       success: false;
       error: string;
     };
-
-function getString(formData: FormData, key: string) {
-  const value = formData.get(key);
-
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function getOptionalString(formData: FormData, key: string) {
-  const value = getString(formData, key);
-
-  return value || null;
-}
-
-function getOptionalDecimal(
-  formData: FormData,
-  key: string
-) {
-  const value = getString(formData, key);
-
-  if (!value) {
-    return null;
-  }
-
-  const number = Number(value);
-
-  if (!Number.isFinite(number) || number < 0) {
-    return null;
-  }
-
-  return number;
-}
-
-function getSkills(formData: FormData) {
-  const rawSkills = formData.getAll('skills');
-
-  return rawSkills
-    .filter(
-      (skill): skill is string =>
-        typeof skill === 'string'
-    )
-    .flatMap(skill =>
-      skill
-        .split(',')
-        .map(value => value.trim())
-        .filter(Boolean)
-    )
-    .filter(
-      (skill, index, array) =>
-        array.indexOf(skill) === index
-    );
-}
 
 export async function updateJob(
   jobId: string,
@@ -82,8 +35,7 @@ export async function updateJob(
         role: true,
         company: {
           select: {
-            id: true,
-            onboardingStatus: true
+            id: true
           }
         }
       }
@@ -99,223 +51,61 @@ export async function updateJob(
     if (dbUser.role !== 'EMPLOYER') {
       return {
         success: false,
-        error: 'Only employer accounts can edit job listings.'
+        error: 'Employer account required.'
       };
     }
 
     if (!dbUser.company) {
       return {
         success: false,
-        error: 'Complete your company profile before editing jobs.'
-      };
-    }
-
-    if (dbUser.company.onboardingStatus !== 'APPROVED') {
-      return {
-        success: false,
-        error: 'Your company profile must be approved before editing jobs.'
+        error: 'Company profile not found.'
       };
     }
 
     const existingJob = await prisma.job.findFirst({
       where: {
         id: jobId,
-        companyId: dbUser.company.id,
-        postedById: dbUser.id
+        companyId: dbUser.company.id
       },
       select: {
         id: true,
-        status: true
+        status: true,
+        approvalStatus: true
       }
     });
 
     if (!existingJob) {
       return {
         success: false,
-        error: 'Job not found or you do not have permission to edit it.'
+        error: 'Job not found.'
       };
     }
 
-    const title = getString(formData, 'title');
-    const description = getString(formData, 'description');
-    const requirements = getOptionalString(
-      formData,
-      'requirements'
-    );
+    const values = parseJobForm(formData);
+    const lifecycle = getEditLifecycle(existingJob);
 
-    const location = getOptionalString(
-      formData,
-      'location'
-    );
-
-    const workMode = getString(formData, 'workMode');
-    const employmentType = getString(
-      formData,
-      'employmentType'
-    );
-
-    const salaryMin = getOptionalDecimal(
-      formData,
-      'salaryMin'
-    );
-
-    const salaryMax = getOptionalDecimal(
-      formData,
-      'salaryMax'
-    );
-
-    const salaryCurrency =
-      getOptionalString(formData, 'salaryCurrency') ??
-      'NGN';
-
-    const expiresAtValue = getString(
-      formData,
-      'expiresAt'
-    );
-
-    const skills = getSkills(formData);
-
-    if (!title) {
-      return {
-        success: false,
-        error: 'Job title is required.'
-      };
-    }
-
-    if (title.length > 150) {
-      return {
-        success: false,
-        error: 'Job title must not exceed 150 characters.'
-      };
-    }
-
-    if (!description) {
-      return {
-        success: false,
-        error: 'Job description is required.'
-      };
-    }
-
-    if (!workMode) {
-      return {
-        success: false,
-        error: 'Work mode is required.'
-      };
-    }
-
-    if (!employmentType) {
-      return {
-        success: false,
-        error: 'Employment type is required.'
-      };
-    }
-
-    if (
-      !['ONSITE', 'REMOTE', 'HYBRID'].includes(workMode)
-    ) {
-      return {
-        success: false,
-        error: 'Invalid work mode.'
-      };
-    }
-
-    if (
-      ![
-        'FULL_TIME',
-        'PART_TIME',
-        'CONTRACT',
-        'INTERNSHIP',
-        'FREELANCE',
-        'TEMPORARY'
-      ].includes(employmentType)
-    ) {
-      return {
-        success: false,
-        error: 'Invalid employment type.'
-      };
-    }
-
-    if (
-      salaryMin !== null &&
-      salaryMax !== null &&
-      salaryMin > salaryMax
-    ) {
-      return {
-        success: false,
-        error:
-          'Minimum salary cannot be greater than maximum salary.'
-      };
-    }
-
-    let expiresAt: Date | null = null;
-
-    if (expiresAtValue) {
-      const parsedDate = new Date(
-        `${expiresAtValue}T23:59:59`
-      );
-
-      if (Number.isNaN(parsedDate.getTime())) {
-        return {
-          success: false,
-          error: 'Invalid expiry date.'
-        };
-      }
-
-      if (
-        existingJob.status === 'PUBLISHED' &&
-        parsedDate <= new Date()
-      ) {
-        return {
-          success: false,
-          error:
-            'Expiry date must be in the future for a published job.'
-        };
-      }
-
-      expiresAt = parsedDate;
-    }
-
-    if (
-      existingJob.status === 'PUBLISHED' &&
-      !expiresAt
-    ) {
-      return {
-        success: false,
-        error:
-          'A published job must have an expiry date.'
-      };
-    }
-
-    const job = await prisma.job.update({
+    const updatedJob = await prisma.job.update({
       where: {
         id: existingJob.id
       },
       data: {
-        title,
-        description,
-        requirements,
-        location,
+        title: values.title,
+        description: values.description,
+        requirements: values.requirements,
+        location: values.location,
+        workMode: values.workMode,
+        employmentType: values.employmentType,
+        salaryMin: values.salaryMin,
+        salaryMax: values.salaryMax,
+        salaryCurrency: values.salaryCurrency,
+        skills: values.skills,
+        expiresAt: values.expiresAt,
 
-        workMode:
-          workMode as
-            | 'ONSITE'
-            | 'REMOTE'
-            | 'HYBRID',
-
-        employmentType:
-          employmentType as
-            | 'FULL_TIME'
-            | 'PART_TIME'
-            | 'CONTRACT'
-            | 'INTERNSHIP'
-            | 'FREELANCE'
-            | 'TEMPORARY',
-
-        salaryMin,
-        salaryMax,
-        salaryCurrency,
-        skills,
-        expiresAt
+        status: lifecycle.status,
+        approvalStatus: lifecycle.approvalStatus,
+        publishedAt: lifecycle.publishedAt,
+        approvedAt: lifecycle.approvedAt,
+        rejectedAt: lifecycle.rejectedAt
       },
       select: {
         id: true
@@ -323,20 +113,23 @@ export async function updateJob(
     });
 
     revalidatePath('/dashboard/jobs');
-    revalidatePath(`/dashboard/jobs/${job.id}/edit`);
-    revalidatePath(`/jobs/${job.id}`);
+    revalidatePath(`/dashboard/jobs/${jobId}/edit`);
+    revalidatePath(`/jobs/${jobId}`);
     revalidatePath('/jobs');
 
     return {
       success: true,
-      jobId: job.id
+      jobId: updatedJob.id
     };
   } catch (error) {
     console.error('updateJob failed:', error);
 
     return {
       success: false,
-      error: 'Something went wrong while updating the job.'
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong while updating the job.'
     };
   }
 }
