@@ -1,4 +1,3 @@
-
 import {
   Bell,
   BriefcaseBusiness,
@@ -19,6 +18,7 @@ export type NavigationItem = {
   label: string;
   href: string;
   icon: React.ElementType;
+  inactive?: boolean;
 };
 
 export type NavigationGroup = {
@@ -48,12 +48,14 @@ const employerNavigation: NavigationGroup[] = [
       {
         label: 'Candidates',
         href: '/dashboard/employer/candidates',
-        icon: UsersRound
+        icon: UsersRound,
+        inactive: true
       },
       {
         label: 'Interviews',
         href: '/dashboard/employer/interviews',
-        icon: CalendarDays
+        icon: CalendarDays,
+        inactive: true
       }
     ]
   },
@@ -63,17 +65,20 @@ const employerNavigation: NavigationGroup[] = [
       {
         label: 'Messages',
         href: '/dashboard/messages',
-        icon: MessageSquare
+        icon: MessageSquare,
+        inactive: true
       },
       {
         label: 'Invitations',
         href: '/dashboard/employer/invitations',
-        icon: FileText
+        icon: FileText,
+        inactive: true
       },
       {
         label: 'Notifications',
         href: '/dashboard/notifications',
-        icon: Bell
+        icon: Bell,
+        inactive: true
       }
     ]
   },
@@ -126,7 +131,8 @@ const jobSeekerNavigation: NavigationGroup[] = [
       {
         label: 'Interviews',
         href: '/dashboard/interviews',
-        icon: CalendarDays
+        icon: CalendarDays,
+        inactive: true
       }
     ]
   },
@@ -136,12 +142,14 @@ const jobSeekerNavigation: NavigationGroup[] = [
       {
         label: 'Messages',
         href: '/dashboard/messages',
-        icon: MessageSquare
+        icon: MessageSquare,
+        inactive: true
       },
       {
         label: 'Notifications',
         href: '/dashboard/notifications',
-        icon: Bell
+        icon: Bell,
+        inactive: true
       }
     ]
   },
