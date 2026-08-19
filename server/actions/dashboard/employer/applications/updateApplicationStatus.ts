@@ -14,8 +14,7 @@ const employerStatuses = [
   'HIRED'
 ] as const;
 
-type EmployerApplicationStatus =
-  (typeof employerStatuses)[number];
+type EmployerApplicationStatus = (typeof employerStatuses)[number];
 
 type UpdateApplicationStatusResult =
   | {
@@ -69,30 +68,26 @@ export async function updateApplicationStatus(
       };
     }
 
-    if (
-      !employerStatuses.includes(
-        status as EmployerApplicationStatus
-      )
-    ) {
+    if (!employerStatuses.includes(status as EmployerApplicationStatus)) {
       return {
         success: false,
         error: 'Invalid application status.'
       };
     }
 
-    const application =
-      await prisma.application.findFirst({
-        where: {
-          id: applicationId,
-          job: {
-            companyId: dbUser.company.id
-          }
-        },
-        select: {
-          id: true,
-          status: true
+    const application = await prisma.application.findFirst({
+      where: {
+        id: applicationId,
+        job: {
+          companyId: dbUser.company.id
         }
-      });
+      },
+      select: {
+        id: true,
+        jobId: true,
+        status: true
+      }
+    });
 
     if (!application) {
       return {
@@ -104,8 +99,7 @@ export async function updateApplicationStatus(
     if (application.status === 'WITHDRAWN') {
       return {
         success: false,
-        error:
-          'A withdrawn application cannot be changed by the employer.'
+        error: 'A withdrawn application cannot be changed by the employer.'
       };
     }
 
@@ -114,32 +108,37 @@ export async function updateApplicationStatus(
         id: application.id
       },
       data: {
-        status:
-          status as EmployerApplicationStatus
+        status: status as EmployerApplicationStatus
       }
     });
 
+    // Global employer application list
+    revalidatePath('/dashboard/employer/applications');
+
+    // Individual employer application
     revalidatePath(
-      '/dashboard/applications'
+      `/dashboard/employer/applications/${application.id}`
     );
 
+    // Applications belonging to this specific job
     revalidatePath(
-      `/dashboard/applications/${application.id}`
+      `/dashboard/employer/jobs/${application.jobId}/applications`
+    );
+
+    // The job page displays the application count/status summary.
+    revalidatePath(
+      `/dashboard/employer/jobs/${application.jobId}`
     );
 
     return {
       success: true
     };
   } catch (error) {
-    console.error(
-      'updateApplicationStatus failed:',
-      error
-    );
+    console.error('updateApplicationStatus failed:', error);
 
     return {
       success: false,
-      error:
-        'Something went wrong while updating the application.'
+      error: 'Something went wrong while updating the application.'
     };
   }
 }

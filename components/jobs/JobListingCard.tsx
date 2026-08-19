@@ -93,12 +93,8 @@ function getStatus(status: string, approvalStatus: string) {
   };
 }
 
-function getManageHref(role: JobListingCardRole, jobId: string) {
-  if (role === 'ADMIN') {
-    return `/dashboard/admin/jobs/${jobId}`;
-  }
-
-  return `/jobs/${jobId}`;
+function getPreviewHref(role: JobListingCardRole, jobId: string) {
+  return role === 'EMPLOYER' ? `/dashboard/employer/jobs/${jobId}` : `/jobs/${jobId}`;
 }
 
 export function JobListingCard({
@@ -115,15 +111,15 @@ export function JobListingCard({
   const canEdit = role === 'EMPLOYER';
   const canManage = role === 'ADMIN';
 
-  const manageHref = getManageHref(role, job.id);
+  const previewHref = getPreviewHref(role, job.id);
 
   return (
     <article className="group overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <div className="p-5 sm:p-6">
+      <div className="p-4 sm:p-5 lg:p-6">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 gap-4">
-            <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted/50">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 flex-1 gap-3.5 sm:gap-4">
+            <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted/50 sm:size-12">
               {job.company.companyLogoUrl ? (
                 <img
                   src={job.company.companyLogoUrl}
@@ -135,12 +131,14 @@ export function JobListingCard({
               )}
             </div>
 
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               {showCompany && (
                 <p className="truncate text-xs font-medium text-primary">{job.company.companyName}</p>
               )}
 
-              <h3 className="mt-1 truncate text-base font-semibold tracking-tight sm:text-lg">{job.title}</h3>
+              <h3 className="mt-1 line-clamp-2 text-base font-semibold tracking-tight sm:text-lg">
+                {job.title}
+              </h3>
 
               <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                 <span>{formatLabel(job.employmentType)}</span>
@@ -153,9 +151,9 @@ export function JobListingCard({
                   <>
                     <span>·</span>
 
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin className="size-3.5" />
-                      {job.location}
+                    <span className="inline-flex min-w-0 items-center gap-1">
+                      <MapPin className="size-3.5 shrink-0" />
+                      <span className="truncate">{job.location}</span>
                     </span>
                   </>
                 )}
@@ -164,15 +162,17 @@ export function JobListingCard({
           </div>
 
           <span
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${state.className}`}>
+            className={`inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${state.className}`}>
             <StateIcon className="size-3.5" />
             {state.label}
           </span>
         </div>
+
         {/* Description */}
         {showDescription && (
           <p className="mt-5 line-clamp-3 text-sm leading-6 text-muted-foreground">{job.description}</p>
         )}
+
         {/* Salary */}
         {showSalary && (
           <div className="mt-5 rounded-xl bg-muted/40 px-4 py-3">
@@ -183,6 +183,7 @@ export function JobListingCard({
             </p>
           </div>
         )}
+
         {/* Skills */}
         {job.skills.length > 0 && (
           <div className="mt-5 flex flex-wrap gap-1.5">
@@ -201,15 +202,16 @@ export function JobListingCard({
             )}
           </div>
         )}
+
         {/* Metadata */}
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
           <div className="rounded-xl bg-muted/40 p-3">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Users className="size-3.5" />
               Applications
             </div>
 
-            <p className="mt-1 text-lg font-semibold">{job.applicationCount}</p>
+            <p className="mt-1 text-lg font-semibold tabular-nums">{job.applicationCount}</p>
           </div>
 
           <div className="rounded-xl bg-muted/40 p-3">
@@ -223,21 +225,20 @@ export function JobListingCard({
         </div>
 
         {/* Actions */}
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-          {/* Primary preview / listing link */}
+        <div className="mt-5 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
           <Link
-            href={role === 'EMPLOYER' ? `/dashboard/employer/jobs/${job.id}` : `/jobs/${job.id}`}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+            href={previewHref}
+            className="inline-flex h-9 items-center justify-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:justify-start">
             {role === 'EMPLOYER' ? 'Preview' : 'View listing'}
             <ArrowRight className="size-3.5" />
           </Link>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-2">
             {/* Applicant */}
             {canApply && (
               <Link
                 href={`/jobs/${job.id}`}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">
                 Apply
               </Link>
             )}
@@ -247,23 +248,28 @@ export function JobListingCard({
               <>
                 <Link
                   href={`/dashboard/employer/jobs/${job.id}/edit`}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border bg-background px-3 text-xs font-medium hover:bg-muted">
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border bg-background px-3 text-xs font-medium transition-colors hover:bg-muted">
                   <Pencil className="size-3.5" />
                   Quick Edit
                 </Link>
 
                 <Link
-                  href="/dashboard/employer/applications"
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border bg-background px-3 text-xs font-medium hover:bg-muted">
+                  href={`/dashboard/employer/jobs/${job.id}/applications`}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border bg-background px-3 text-xs font-medium transition-colors hover:bg-muted">
+                  <Users className="size-3.5" />
                   Applications
+                  <span className="min-w-5 rounded-full bg-muted px-1.5 py-0.5 text-center text-[10px] font-semibold tabular-nums">
+                    {job.applicationCount}
+                  </span>
                 </Link>
               </>
             )}
+
             {/* Admin */}
             {canManage && (
               <Link
-                href={manageHref}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border bg-background px-3 text-xs font-medium hover:bg-muted">
+                href={`/dashboard/admin/jobs/${job.id}`}
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border bg-background px-3 text-xs font-medium transition-colors hover:bg-muted">
                 Manage
               </Link>
             )}
