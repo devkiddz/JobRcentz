@@ -175,6 +175,9 @@ export function EmployerCompanyEditor({ company }: Props) {
     const formData = new FormData(event.currentTarget);
 
     const input = {
+      visibility: String(formData.get('visibility') ?? 'PRIVATE') as 'PUBLIC' | 'UNLISTED' | 'PRIVATE',
+
+      isDiscoverable: formData.getAll('isDiscoverable').includes('true'),
       companyName: String(formData.get('companyName') ?? ''),
       companyWebsite: String(formData.get('companyWebsite') ?? ''),
       companySize: String(formData.get('companySize') ?? ''),

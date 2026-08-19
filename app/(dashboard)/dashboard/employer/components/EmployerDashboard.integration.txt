@@ -1,0 +1,40 @@
+INTEGRATION
+
+1. Replace your current getEmployerDashboard.ts with the supplied version.
+
+2. Replace EmployerStats.tsx with the supplied version.
+
+3. Add the other four component files beside EmployerStats.tsx:
+   - EmployerAnalytics.tsx
+   - ApplicationTrendChart.tsx
+   - ApplicationStatusChart.tsx
+   - JobPerformanceChart.tsx
+
+4. In EmployerDashboard.tsx import:
+   import EmployerAnalytics from './EmployerAnalytics';
+
+5. Render analytics immediately after EmployerStats:
+   <EmployerStats stats={stats} />
+   <EmployerAnalytics analytics={analytics} />
+
+6. Update the destructuring in EmployerDashboard.tsx:
+   const {
+     user,
+     company,
+     profile,
+     stats,
+     analytics,
+     recentJobs,
+     recentApplications,
+     upcomingInterviews
+   } = dashboard;
+
+7. Keep your existing components/ui/chart.tsx.
+
+8. Run:
+   pnpm build
+
+The analytics are database-backed. There are no invented trend percentages.
+The application trend is the actual number of applications received per day for the last 30 days.
+The pipeline chart uses the actual application status counts.
+The job-performance chart ranks actual jobs by their application counts.

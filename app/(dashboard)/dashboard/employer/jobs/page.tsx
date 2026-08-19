@@ -1,19 +1,14 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { BriefcaseBusiness, CheckCircle2, Clock3, Plus, Users } from 'lucide-react';
+import { BriefcaseBusiness, CheckCircle2, Clock3, Plus, Users, TrendingUp } from 'lucide-react';
 
+import MetricCard from '@/components/dashboard/MetricCard';
 import { JobListingCard } from '@/components/jobs/JobListingCard';
 import { getEmployerJobs } from '@/server/actions/dashboard/employer/getEmployerJobs';
 
 export default async function EmployerJobsPage() {
   const dashboard = await getEmployerJobs();
 
-  /*
-   * Server action already enforces authentication
-   * and employer authorization.
-   *
-   * Keep this as a defensive page-level guard.
-   */
   if (dashboard.user.role !== 'EMPLOYER') {
     redirect('/dashboard');
   }
@@ -30,9 +25,10 @@ export default async function EmployerJobsPage() {
 
   const totalApplications = jobs.reduce((total, job) => total + job._count.applications, 0);
 
+  const publishedRate = jobs.length > 0 ? Math.round((published / jobs.length) * 100) : 0;
+
   return (
     <main className="mx-auto w-full max-w-7xl space-y-8 p-4 sm:p-6 lg:p-8">
-      {/* Page header */}
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <p className="text-sm font-medium text-primary">{company.companyName}</p>
@@ -52,15 +48,63 @@ export default async function EmployerJobsPage() {
         </Link>
       </header>
 
-      {/* Overview */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Jobs" value={jobs.length} icon={BriefcaseBusiness} />
+      {/* Shared metric cards */}
+      <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <MetricCard
+          label="Total Jobs"
+          value={jobs.length}
+          context={`${drafts} draft${drafts === 1 ? '' : 's'}`}
+          icon="briefcase"
+          contextIcon="briefcase"
+          href="/dashboard/employer/jobs"
+        />
 
-        <StatCard label="Published" value={published} icon={CheckCircle2} />
+        <MetricCard
+          label="Published"
+          value={published}
+          context={`${publishedRate}% of total jobs`}
+          icon="check"
+          contextIcon="check"
+          href="/dashboard/employer/jobs?status=published"
+          visual={
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Published rate</span>
 
-        <StatCard label="Pending Review" value={pending} icon={Clock3} />
+                <span className="font-medium text-foreground">{publishedRate}%</span>
+              </div>
 
-        <StatCard label="Applications" value={totalApplications} icon={Users} />
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-emerald-500"
+                  style={{
+                    width: `${publishedRate}%`
+                  }}
+                />
+              </div>
+            </div>
+          }
+        />
+
+        <MetricCard
+          label="Pending Review"
+          value={pending}
+          context={pending > 0 ? `${pending} awaiting approval` : 'Nothing awaiting approval'}
+          icon="clock"
+          contextIcon="clock"
+          href="/dashboard/employer/jobs?approval=pending"
+        />
+
+        <MetricCard
+          label="Applications"
+          value={totalApplications}
+          context={
+            totalApplications > 0 ? `${totalApplications} received across jobs` : 'No applications yet'
+          }
+          icon="users"
+          contextIcon="trending"
+          href="/dashboard/employer/applications"
+        />
       </section>
 
       {/* Listings */}
@@ -78,8 +122,7 @@ export default async function EmployerJobsPage() {
 
           {drafts > 0 && (
             <span className="text-xs text-muted-foreground">
-              {drafts} draft
-              {drafts === 1 ? '' : 's'}
+              {drafts} draft{drafts === 1 ? '' : 's'}
             </span>
           )}
         </div>
@@ -128,32 +171,6 @@ export default async function EmployerJobsPage() {
         )}
       </section>
     </main>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  icon: Icon
-}: {
-  label: string;
-  value: number;
-  icon: typeof BriefcaseBusiness;
-}) {
-  return (
-    <div className="rounded-2xl border bg-card p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">{label}</p>
-
-          <p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>
-        </div>
-
-        <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
-          <Icon className="size-4.5 text-primary" />
-        </div>
-      </div>
-    </div>
   );
 }
 

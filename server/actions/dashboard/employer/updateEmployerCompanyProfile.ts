@@ -5,6 +5,15 @@ import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/server/auth/requireAuth';
 import { prisma } from '@/server/db/prisma';
 
+const companyVisibilities = [
+  'PUBLIC',
+  'UNLISTED',
+  'PRIVATE'
+] as const;
+
+type CompanyVisibility =
+  (typeof companyVisibilities)[number];
+
 export interface UpdateEmployerCompanyProfileInput {
   companyName: string;
   companyWebsite?: string;
@@ -18,6 +27,9 @@ export interface UpdateEmployerCompanyProfileInput {
   companyLinkedIn?: string;
   companyX?: string;
   companyFacebook?: string;
+
+  visibility: CompanyVisibility;
+  isDiscoverable: boolean;
 
   logo?: {
     url: string;
@@ -66,7 +78,22 @@ export async function updateEmployerCompanyProfile(
     throw new Error('Company profile not found.');
   }
 
+  /*
+   * Validate company visibility server-side.
+   *
+   * The client already restricts this to the supported
+   * options, but server actions must not trust client input.
+   */
+  if (
+    !companyVisibilities.includes(
+      input.visibility as CompanyVisibility
+    )
+  ) {
+    throw new Error('Invalid company visibility.');
+  }
+
   const companyName = input.companyName.trim();
+
   const companyIndustry =
     input.companyIndustry.trim();
 
@@ -157,6 +184,10 @@ export async function updateEmployerCompanyProfile(
   const companyBannerChanged =
     input.banner !== undefined;
 
+  /*
+   * Persist the complete employer company profile
+   * atomically.
+   */
   const company = await prisma.$transaction(
     async tx => {
       return tx.companyProfile.update({
@@ -193,6 +224,22 @@ export async function updateEmployerCompanyProfile(
 
           companyFacebook,
 
+          /*
+           * Company visibility/discoverability.
+           *
+           * These were previously displayed by the editor
+           * but were not being persisted.
+           */
+          visibility:
+            input.visibility as CompanyVisibility,
+
+          isDiscoverable:
+            input.isDiscoverable,
+
+          /*
+           * Only modify media fields when the caller
+           * explicitly supplied the corresponding asset.
+           */
           ...(companyLogoChanged
             ? {
                 companyLogoUrl:
@@ -218,15 +265,22 @@ export async function updateEmployerCompanyProfile(
   );
 
   /*
-   * Only after the database has successfully accepted
-   * the new asset do we return the old public IDs.
-   *
-   * The caller can then clean up the old Cloudinary files.
+   * Revalidate employer dashboard/company pages so the
+   * newly persisted values are reflected immediately.
    */
   revalidatePath('/dashboard');
-  revalidatePath('/dashboard/employer');
-  revalidatePath('/dashboard/employer/company');
 
+  revalidatePath('/dashboard/employer');
+
+  revalidatePath(
+    '/dashboard/employer/company'
+  );
+
+  /*
+   * Return the old media IDs only after the database
+   * transaction succeeds. The client can then safely
+   * remove the old Cloudinary assets.
+   */
   return {
     success: true,
 
