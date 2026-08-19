@@ -58,7 +58,7 @@ export default function EmployerDashboard({ dashboard }: EmployerDashboardProps)
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl space-y-8 md:px-4 py-6 lg:px-8">
       {/* Hero Header Banner */}
       <EmployerProfileHero user={user} company={company} profile={profile} />
 

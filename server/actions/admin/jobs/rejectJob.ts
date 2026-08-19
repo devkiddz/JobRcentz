@@ -15,7 +15,8 @@ type RejectJobResult =
     };
 
 export async function rejectJob(
-  jobId: string
+  jobId: string,
+  reason: string
 ): Promise<RejectJobResult> {
   try {
     const user = await requireAuth();
@@ -33,6 +34,29 @@ export async function rejectJob(
       return {
         success: false,
         error: 'Unauthorized.'
+      };
+    }
+
+    const rejectionReason = reason.trim();
+
+    if (!rejectionReason) {
+      return {
+        success: false,
+        error: 'A rejection reason is required.'
+      };
+    }
+
+    if (rejectionReason.length < 10) {
+      return {
+        success: false,
+        error: 'Rejection reason must be at least 10 characters.'
+      };
+    }
+
+    if (rejectionReason.length > 1000) {
+      return {
+        success: false,
+        error: 'Rejection reason must not exceed 1000 characters.'
       };
     }
 
@@ -57,7 +81,7 @@ export async function rejectJob(
     if (job.status !== 'PUBLISHED') {
       return {
         success: false,
-        error: 'Only published jobs can be rejected.'
+        error: 'Only submitted jobs can be rejected.'
       };
     }
 
@@ -75,13 +99,18 @@ export async function rejectJob(
       data: {
         approvalStatus: 'REJECTED',
         rejectedAt: new Date(),
-        approvedAt: null
+        approvedAt: null,
+        rejectionReason
       }
     });
 
     revalidatePath('/admin/jobs');
     revalidatePath(`/admin/jobs/${jobId}`);
     revalidatePath('/jobs');
+
+    revalidatePath('/dashboard/employer/jobs');
+    revalidatePath('/dashboard/employer/jobs/rejected');
+    revalidatePath(`/dashboard/employer/jobs/${jobId}`);
 
     return {
       success: true

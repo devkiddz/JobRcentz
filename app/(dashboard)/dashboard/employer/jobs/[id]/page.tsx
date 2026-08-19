@@ -10,7 +10,8 @@ import {
   MapPin,
   Pencil,
   Users,
-  XCircle
+  XCircle,
+  type LucideIcon
 } from 'lucide-react';
 
 import { getJobById } from '@/server/actions/jobs/getJobById';
@@ -54,8 +55,7 @@ function getStatus(status: string, approvalStatus: string) {
       label: 'Draft',
       description: 'This job has not been published yet.',
       icon: FileText,
-      className: 'bg-muted text-muted-foreground',
-      dotClassName: 'bg-muted-foreground'
+      className: 'bg-muted text-muted-foreground'
     };
   }
 
@@ -64,8 +64,7 @@ function getStatus(status: string, approvalStatus: string) {
       label: 'Closed',
       description: 'This listing is no longer accepting applications.',
       icon: XCircle,
-      className: 'bg-muted text-muted-foreground',
-      dotClassName: 'bg-muted-foreground'
+      className: 'bg-muted text-muted-foreground'
     };
   }
 
@@ -74,8 +73,7 @@ function getStatus(status: string, approvalStatus: string) {
       label: 'Published',
       description: 'This job is live and visible to applicants.',
       icon: CheckCircle2,
-      className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-      dotClassName: 'bg-emerald-500'
+      className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
     };
   }
 
@@ -84,8 +82,7 @@ function getStatus(status: string, approvalStatus: string) {
       label: 'Rejected',
       description: 'This listing requires changes before publication.',
       icon: XCircle,
-      className: 'bg-destructive/10 text-destructive',
-      dotClassName: 'bg-destructive'
+      className: 'bg-destructive/10 text-destructive'
     };
   }
 
@@ -93,8 +90,7 @@ function getStatus(status: string, approvalStatus: string) {
     label: 'Pending Review',
     description: 'This listing is waiting for administrator approval.',
     icon: Clock3,
-    className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-    dotClassName: 'bg-amber-500'
+    className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
   };
 }
 
@@ -131,8 +127,8 @@ export default async function EmployerJobPage({ params }: { params: Promise<{ id
 
         <div className="p-6 sm:p-8 lg:p-10">
           <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+            {/* Job identity */}
             <div className="flex min-w-0 gap-5">
-              {/* Company logo */}
               <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border bg-muted/50 shadow-sm sm:size-20">
                 {company.companyLogoUrl ? (
                   <img
@@ -185,7 +181,7 @@ export default async function EmployerJobPage({ params }: { params: Promise<{ id
             </div>
           </div>
 
-          {/* Hero actions */}
+          {/* Actions */}
           <div className="mt-8 flex flex-wrap items-center gap-3 border-t pt-6">
             <Link
               href={`/dashboard/employer/jobs/${job.id}/edit`}
@@ -321,15 +317,7 @@ export default async function EmployerJobPage({ params }: { params: Promise<{ id
   );
 }
 
-function Metric({
-  icon: Icon,
-  label,
-  value
-}: {
-  icon: typeof BriefcaseBusiness;
-  label: string;
-  value: string;
-}) {
+function Metric({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <div className="flex items-center gap-4 border-b p-5 last:border-b-0 sm:border-r sm:last:border-r-0 lg:border-b-0">
       <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">

@@ -7,8 +7,10 @@ import {
   CalendarDays,
   CircleDollarSign,
   FileText,
+  Loader2,
   MapPin,
   Save,
+  Send,
   Sparkles,
   X
 } from 'lucide-react';
@@ -18,6 +20,7 @@ import { updateJob } from '@/server/actions/jobs/updateJob';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { submitJobForReview } from '@/server/actions/admin/jobs/submitJobForReview';
 
 type JobData = {
   id: string;
@@ -98,6 +101,7 @@ export default function EditJobForm({ job }: { job: JobData }) {
   const [error, setError] = React.useState('');
   const [success, setSuccess] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isSubmittingForReview, setIsSubmittingForReview] = React.useState(false);
 
   const [skills, setSkills] = React.useState<string[]>(job.skills);
 
@@ -125,6 +129,29 @@ export default function EditJobForm({ job }: { job: JobData }) {
       setError('Something went wrong while updating the job.');
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleSubmitForReview() {
+    setError('');
+    setSuccess('');
+    setIsSubmittingForReview(true);
+
+    try {
+      const result = await submitJobForReview(job.id);
+
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+
+      setSuccess('Job submitted for review.');
+
+      router.refresh();
+    } catch {
+      setError('Something went wrong while submitting the job for review.');
+    } finally {
+      setIsSubmittingForReview(false);
     }
   }
 
@@ -404,14 +431,34 @@ export default function EditJobForm({ job }: { job: JobData }) {
               type="button"
               variant="outline"
               onClick={() => router.push(`/dashboard/employer/jobs/${job.id}`)}
-              disabled={isLoading}>
+              disabled={isLoading || isSubmittingForReview}>
               Cancel
             </Button>
 
-            <Button type="submit" disabled={isLoading} className="gap-2">
+            <Button type="submit" disabled={isLoading || isSubmittingForReview} className="gap-2">
               <Save className="size-4" />
               {isLoading ? 'Saving changes...' : 'Save Changes'}
             </Button>
+
+            {job.status === 'DRAFT' && (
+              <Button
+                type="button"
+                onClick={handleSubmitForReview}
+                disabled={isLoading || isSubmittingForReview}
+                className="gap-2">
+                {isSubmittingForReview ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="size-4" />
+                    Submit for Review
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </div>

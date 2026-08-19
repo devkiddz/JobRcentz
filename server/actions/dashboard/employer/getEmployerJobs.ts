@@ -3,7 +3,16 @@
 import { requireAuth } from '@/server/auth/requireAuth';
 import { prisma } from '@/server/db/prisma';
 
-export async function getEmployerJobs() {
+export type EmployerJobFilter =
+  | 'ALL'
+  | 'DRAFT'
+  | 'PUBLISHED'
+  | 'PENDING'
+  | 'REJECTED';
+
+export async function getEmployerJobs(
+  filter: EmployerJobFilter = 'ALL'
+) {
   const user = await requireAuth();
 
   const dbUser = await prisma.user.findUnique({
@@ -39,44 +48,66 @@ export async function getEmployerJobs() {
     throw new Error('Company profile not found.');
   }
 
+  const where = {
+    companyId: company.id,
+    ...(filter === 'DRAFT'
+      ? {
+          status: 'DRAFT' as const
+        }
+      : filter === 'PUBLISHED'
+        ? {
+            status: 'PUBLISHED' as const,
+            approvalStatus: 'APPROVED' as const
+          }
+        : filter === 'PENDING'
+          ? {
+              status: 'PUBLISHED' as const,
+              approvalStatus: 'PENDING' as const
+            }
+          : filter === 'REJECTED'
+            ? {
+                status: 'PUBLISHED' as const,
+                approvalStatus: 'REJECTED' as const
+              }
+            : {})
+  };
+
   const jobs = await prisma.job.findMany({
-    where: {
-      companyId: company.id
-    },
+    where,
     orderBy: {
       createdAt: 'desc'
     },
     select: {
-    id: true,
-    title: true,
-    description: true,
-    requirements: true,
+      id: true,
+      title: true,
+      description: true,
+      requirements: true,
 
-    location: true,
-    workMode: true,
-    employmentType: true,
+      location: true,
+      workMode: true,
+      employmentType: true,
 
-    salaryMin: true,
-    salaryMax: true,
-    salaryCurrency: true,
+      salaryMin: true,
+      salaryMax: true,
+      salaryCurrency: true,
 
-    skills: true,
+      skills: true,
 
-    status: true,
-    approvalStatus: true,
+      status: true,
+      approvalStatus: true,
 
-    publishedAt: true,
-    expiresAt: true,
+      publishedAt: true,
+      expiresAt: true,
 
-    createdAt: true,
-    updatedAt: true,
+      createdAt: true,
+      updatedAt: true,
 
-  _count: {
-    select: {
-      applications: true
+      _count: {
+        select: {
+          applications: true
+        }
+      }
     }
-  }
-}
   });
 
   return {
