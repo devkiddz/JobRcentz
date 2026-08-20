@@ -44,6 +44,13 @@ type Props = {
 
 type UploadedFile = MessageAttachmentInput;
 
+type AvatarUser = {
+  id?: string | null;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+};
+
 export default function MessagesClient({
   userId,
   requestedWith,
@@ -125,7 +132,7 @@ export default function MessagesClient({
           setMessages(nextMessages);
         }
       } catch {
-        // Keep the current conversation visible if polling briefly fails.
+        // Keep the existing messages visible if polling briefly fails.
       }
     }, 3000);
 
@@ -146,6 +153,8 @@ export default function MessagesClient({
     setError(null);
     setReplyTo(null);
     setEditing(null);
+    setBody('');
+    setFiles([]);
 
     router.replace(`/dashboard/messages?conversationId=${id}`);
   }
@@ -192,7 +201,7 @@ export default function MessagesClient({
         const result = await updateMessage(editing.id, body.trim());
 
         if (!result.success) {
-          throw new Error(result.error);
+          throw new Error('Unable to update the message.');
         }
 
         setEditing(null);
@@ -202,7 +211,7 @@ export default function MessagesClient({
         const result = await sendMessage(selectedId, body.trim(), replyTo?.id ?? null, uploaded);
 
         if (!result.success) {
-          throw new Error(result.error);
+          throw new Error('Unable to send the message.');
         }
 
         setReplyTo(null);
@@ -235,7 +244,7 @@ export default function MessagesClient({
       const result = await deleteMessage(id);
 
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error('Unable to delete the message.');
       }
 
       if (selectedId) {
@@ -252,18 +261,25 @@ export default function MessagesClient({
     setEditing(message);
     setReplyTo(null);
     setBody(message.body);
+    setFiles([]);
   }
 
   function beginReply(message: Messages[number]) {
     setReplyTo(message);
     setEditing(null);
     setBody('');
+    setFiles([]);
   }
 
   function cancelComposerMode() {
     setReplyTo(null);
     setEditing(null);
     setBody('');
+    setFiles([]);
+
+    if (fileRef.current) {
+      fileRef.current.value = '';
+    }
   }
 
   function isPreviewable(file?: MessageAttachmentInput | null) {
@@ -302,32 +318,40 @@ export default function MessagesClient({
     return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
   }
 
-  function renderAvatar(
-    user?: {
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-    } | null,
-    size: 'sm' | 'md' = 'sm'
-  ) {
-    const sizeClass = size === 'md' ? 'size-10' : 'size-9';
+  function renderAvatar(user?: AvatarUser | null, size: 'sm' | 'md' = 'sm') {
+    const sizeClass = size === 'md' ? 'size-10' : 'size-8';
 
     const iconClass = size === 'md' ? 'size-5' : 'size-4';
 
+    const fallbackText = getInitials(user?.name, user?.email);
+
     return (
       <div
-        className={`${sizeClass} flex shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted`}>
+        className={`${sizeClass} relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted shadow-sm`}>
         {user?.image ? (
-          <img src={user.image} alt={user.name ?? user.email ?? 'User'} className="size-full object-cover" />
-        ) : user ? (
-          <span className="text-[10px] font-semibold text-muted-foreground">
-            {getInitials(user.name, user.email)}
-          </span>
-        ) : (
-          <UserRound className={`${iconClass} text-muted-foreground`} />
-        )}
+          <img
+            src={user.image}
+            alt={user.name ?? 'User'}
+            className="absolute inset-0 size-full object-cover"
+            referrerPolicy="no-referrer"
+            onError={event => {
+              event.currentTarget.style.display = 'none';
+            }}
+          />
+        ) : null}
+
+        <span className="text-[10px] font-semibold text-muted-foreground">{fallbackText}</span>
+
+        {!user && <UserRound className={`${iconClass} absolute text-muted-foreground`} />}
       </div>
     );
+  }
+
+  function formatTime(date: Date) {
+    return date.toLocaleTimeString('en-NG', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 
   if (requestedWith && !requestedConversationId && !selectedId) {
@@ -357,7 +381,7 @@ export default function MessagesClient({
   return (
     <main className="mx-auto h-[calc(100vh-4rem)] w-full max-w-[1500px] p-0 sm:p-4 lg:p-6">
       <div className="grid h-full min-h-0 overflow-hidden rounded-none border bg-card shadow-sm sm:rounded-3xl lg:grid-cols-[340px_1fr]">
-        {/* Conversations */}
+        {/* Conversation list */}
         <aside className={`min-h-0 border-r ${selectedId ? 'hidden lg:flex' : 'flex'} flex-col`}>
           <div className="border-b p-5">
             <div className="flex items-center justify-between">
@@ -409,7 +433,7 @@ export default function MessagesClient({
                     type="button"
                     onClick={() => void selectConversation(conversation.id)}
                     className={`flex w-full gap-3 border-b p-4 text-left transition-colors ${
-                      active ? 'bg-primary/[0.06]' : 'hover:bg-muted/60'
+                      active ? 'bg-primary/[0.07]' : 'hover:bg-muted/60'
                     }`}>
                     {renderAvatar(other, 'md')}
 
@@ -421,18 +445,13 @@ export default function MessagesClient({
 
                         {latest && (
                           <span className="shrink-0 text-[10px] text-muted-foreground">
-                            {latest.createdAt.toLocaleTimeString('en-NG', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {formatTime(latest.createdAt)}
                           </span>
                         )}
                       </div>
 
                       <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {latest?.deletedAt
-                          ? 'Message deleted'
-                          : latest?.body || (latest?.attachments?.length ? 'Attachment' : 'No messages yet')}
+                        {latest?.deletedAt ? 'Message deleted' : latest?.body || 'No messages yet'}
                       </p>
                     </div>
                   </button>
@@ -464,7 +483,7 @@ export default function MessagesClient({
               <header className="flex shrink-0 items-center gap-3 border-b bg-card px-4 py-3 sm:px-5">
                 <button
                   type="button"
-                  className="rounded-lg p-2 hover:bg-muted lg:hidden"
+                  className="rounded-lg p-2 transition hover:bg-muted lg:hidden"
                   onClick={() => {
                     setSelectedId(null);
                     router.replace('/dashboard/messages');
@@ -488,7 +507,7 @@ export default function MessagesClient({
               </header>
 
               {/* Messages */}
-              <div className="min-h-0 flex-1 overflow-y-auto bg-muted/[0.16] px-3 py-5 sm:px-6">
+              <div className="min-h-0 flex-1 overflow-y-auto bg-muted/[0.14] px-3 py-5 sm:px-6">
                 <div className="mx-auto max-w-3xl space-y-4">
                   {messages.length === 0 && (
                     <div className="py-20 text-center">
@@ -514,25 +533,24 @@ export default function MessagesClient({
                         key={message.id}
                         className={`group flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
                         {/* Incoming avatar */}
-                        {!mine && <div className="self-end pb-0.5">{renderAvatar(sender, 'sm')}</div>}
+                        {!mine && <div className="mb-0.5 self-end">{renderAvatar(sender, 'sm')}</div>}
 
                         <div
-                          className={`flex max-w-[88%] items-end gap-2 sm:max-w-[75%] ${
+                          className={`flex min-w-0 max-w-[88%] items-end gap-2 sm:max-w-[75%] ${
                             mine ? 'flex-row-reverse' : ''
                           }`}>
                           <div className="min-w-0">
-                            {/* Sender name */}
                             {!mine && (
                               <p className="mb-1 px-1 text-[10px] font-medium text-muted-foreground">
-                                {sender?.name ?? sender?.email ?? 'User'}
+                                {sender?.name ?? 'User'}
                               </p>
                             )}
 
-                            {/* Bubble */}
+                            {/* Message bubble */}
                             <div
                               className={`rounded-2xl border px-3.5 py-2.5 shadow-sm ${
                                 mine
-                                  ? 'rounded-br-md border-emerald-700 bg-emerald-700 text-white'
+                                  ? 'rounded-br-md border-primary bg-primary text-white'
                                   : 'rounded-bl-md bg-card text-foreground'
                               }`}>
                               {/* Reply preview */}
@@ -541,7 +559,9 @@ export default function MessagesClient({
                                   type="button"
                                   onClick={() => beginReply(message.replyTo as Messages[number])}
                                   className={`mb-2 block w-full rounded-lg border-l-2 px-2.5 py-1.5 text-left text-xs ${
-                                    mine ? 'border-white/50 bg-white/10' : 'border-primary bg-muted'
+                                    mine
+                                      ? 'border-primary-foreground/50 bg-primary-foreground/10'
+                                      : 'border-primary bg-muted'
                                   }`}>
                                   <span className="font-semibold">{message.replyTo.sender.name}</span>
 
@@ -569,7 +589,9 @@ export default function MessagesClient({
                                     <div
                                       key={file.id}
                                       className={`overflow-hidden rounded-xl border ${
-                                        mine ? 'border-white/15 bg-white/10' : 'bg-muted/50'
+                                        mine
+                                          ? 'border-primary-foreground/15 bg-primary-foreground/10'
+                                          : 'bg-muted/50'
                                       }`}>
                                       {file.mimeType?.startsWith('image/') ? (
                                         <button
@@ -586,7 +608,7 @@ export default function MessagesClient({
                                         <div className="flex items-center gap-3 p-2.5">
                                           <div
                                             className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
-                                              mine ? 'bg-white/10' : 'bg-background'
+                                              mine ? 'bg-primary-foreground/10' : 'bg-background'
                                             }`}>
                                             {attachmentIcon(file.mimeType)}
                                           </div>
@@ -613,7 +635,7 @@ export default function MessagesClient({
                                             href={file.url}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-black/5">
+                                            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition hover:bg-black/5">
                                             <Download className="size-4" />
                                           </a>
                                         </div>
@@ -626,32 +648,22 @@ export default function MessagesClient({
                               {/* Metadata */}
                               <div
                                 className={`mt-1 flex items-center justify-end gap-1 text-[9px] ${
-                                  mine ? 'text-white/65' : 'text-muted-foreground'
+                                  mine ? 'text-primary-foreground/65' : 'text-muted-foreground'
                                 }`}>
                                 {message.updatedAt.getTime() !== message.createdAt.getTime() && !deleted && (
                                   <span>edited</span>
                                 )}
 
-                                <span>
-                                  {message.createdAt.toLocaleTimeString('en-NG', {
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </span>
+                                <span>{formatTime(message.createdAt)}</span>
 
-                                {mine &&
-                                  (message.senderId === userId ? (
-                                    <CheckCheck className="size-3" />
-                                  ) : (
-                                    <Check className="size-3" />
-                                  ))}
+                                {mine && <CheckCheck className="size-3" />}
                               </div>
                             </div>
                           </div>
 
-                          {/* Message actions */}
+                          {/* Actions */}
                           {!deleted && (
-                            <div className="invisible flex items-center gap-0.5 rounded-lg border bg-card p-1 shadow-sm transition-opacity group-hover:visible">
+                            <div className="invisible flex items-center gap-0.5 rounded-lg border bg-card p-1 opacity-0 shadow-sm transition-all group-hover:visible group-hover:opacity-100">
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -690,7 +702,7 @@ export default function MessagesClient({
                         </div>
 
                         {/* Outgoing avatar */}
-                        {mine && <div className="self-end pb-0.5">{renderAvatar(sender, 'sm')}</div>}
+                        {mine && <div className="mb-0.5 self-end">{renderAvatar(sender, 'sm')}</div>}
                       </div>
                     );
                   })}
@@ -747,7 +759,7 @@ export default function MessagesClient({
 
                         <button
                           type="button"
-                          className="text-muted-foreground hover:text-foreground"
+                          className="text-muted-foreground transition hover:text-foreground"
                           onClick={() => setFiles(current => current.filter(item => item !== file))}>
                           ×
                         </button>
