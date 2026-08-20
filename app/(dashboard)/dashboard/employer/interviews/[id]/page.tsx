@@ -16,6 +16,7 @@ import { createInterviewTask } from '@/server/actions/dashboard/employer/intervi
 
 import InterviewTaskActions from './InterviewTaskActions';
 import InterviewTaskForm from './InterviewTaskForm';
+import InterviewNotes from './InterviewNotes';
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat('en-NG', {
@@ -442,15 +443,7 @@ export default async function EmployerInterviewDetailPage({ params }: { params: 
             )}
           </section>
 
-          <section className="rounded-2xl border bg-card p-5 shadow-sm">
-            <h2 className="text-sm font-semibold">Interview notes</h2>
-
-            <p className="mt-3 whitespace-pre-wrap text-xs leading-6 text-muted-foreground">
-              {interview.notesEntries.length > 0
-                ? interview.notesEntries[0].body
-                : 'No interview notes have been added yet.'}
-            </p>
-          </section>
+          <InterviewNotes interviewId={interview.id} notes={interview.notesEntries} />
 
           <section className="rounded-2xl border bg-card p-5 shadow-sm">
             <h2 className="text-sm font-semibold">Participants</h2>
