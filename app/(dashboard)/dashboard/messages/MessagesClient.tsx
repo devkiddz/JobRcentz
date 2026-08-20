@@ -42,14 +42,103 @@ type Props = {
   initialMessages: Messages;
 };
 
-type UploadedFile = MessageAttachmentInput;
+type Message = Messages[number];
+type MessageAttachment = Message['attachments'][number];
 
 type AvatarUser = {
   id?: string | null;
   name?: string | null;
   email?: string | null;
   image?: string | null;
+  role?: string | null;
+
+  jobSeeker?: {
+    profilePhotoUrl?: string | null;
+  } | null;
+
+  company?: {
+    companyLogoUrl?: string | null;
+  } | null;
 };
+
+type AvatarProps = {
+  user?: AvatarUser | null;
+  size?: 'sm' | 'md';
+};
+
+function Avatar({ user, size = 'sm' }: AvatarProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  const sizeClass = size === 'md' ? 'size-10' : 'size-8';
+  const iconClass = size === 'md' ? 'size-5' : 'size-4';
+
+  const avatarUrl =
+    user?.jobSeeker?.profilePhotoUrl?.trim() ||
+    user?.company?.companyLogoUrl?.trim() ||
+    user?.image?.trim() ||
+    null;
+
+  const fallbackValue = user?.name?.trim() || user?.email?.trim();
+
+  const initials = fallbackValue
+    ? fallbackValue
+        .split(/\s+/)
+        .slice(0, 2)
+        .map(part => part[0])
+        .join('')
+        .toUpperCase()
+    : '?';
+
+  const showImage = Boolean(avatarUrl) && !imageFailed;
+
+  return (
+    <div
+      className={`${sizeClass} relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted shadow-sm`}>
+      {showImage ? (
+        <img
+          src={avatarUrl!}
+          alt={user?.name ?? user?.email ?? 'User'}
+          className="absolute inset-0 size-full object-cover"
+          referrerPolicy="no-referrer"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <>
+          {fallbackValue ? (
+            <span className="text-[10px] font-semibold text-muted-foreground">{initials}</span>
+          ) : (
+            <UserRound className={`${iconClass} text-muted-foreground`} />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function formatTime(date: Date) {
+  return date.toLocaleTimeString('en-NG', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function isPreviewable(attachment: MessageAttachment) {
+  const mimeType = attachment.mimeType ?? '';
+
+  return mimeType.startsWith('image/') || mimeType.startsWith('video/') || mimeType === 'application/pdf';
+}
+
+function AttachmentIcon({ mimeType }: { mimeType?: string | null }) {
+  if (mimeType?.startsWith('image/')) {
+    return <ImageIcon className="size-4" />;
+  }
+
+  if (mimeType?.startsWith('video/')) {
+    return <Video className="size-4" />;
+  }
+
+  return <FileText className="size-4" />;
+}
 
 export default function MessagesClient({
   userId,
@@ -70,12 +159,12 @@ export default function MessagesClient({
 
   const [query, setQuery] = useState('');
   const [body, setBody] = useState('');
-  const [replyTo, setReplyTo] = useState<Messages[number] | null>(null);
-  const [editing, setEditing] = useState<Messages[number] | null>(null);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [editing, setEditing] = useState<Message | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<MessageAttachmentInput | null>(null);
+  const [preview, setPreview] = useState<MessageAttachment | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -101,14 +190,11 @@ export default function MessagesClient({
     });
   }, [conversations, query]);
 
-  async function refreshConversation(id: string, replaceMessages = true) {
+  async function refreshConversation(id: string) {
     const [nextConversations, nextMessages] = await Promise.all([getConversations(), getMessages(id)]);
 
     setConversations(nextConversations);
-
-    if (replaceMessages) {
-      setMessages(nextMessages);
-    }
+    setMessages(nextMessages);
   }
 
   useEffect(() => {
@@ -118,13 +204,7 @@ export default function MessagesClient({
 
     let active = true;
 
-    refreshConversation(selectedId).catch(() => {
-      if (active) {
-        setError('Unable to refresh this conversation.');
-      }
-    });
-
-    const interval = window.setInterval(async () => {
+    const loadMessages = async () => {
       try {
         const nextMessages = await getMessages(selectedId);
 
@@ -132,8 +212,16 @@ export default function MessagesClient({
           setMessages(nextMessages);
         }
       } catch {
-        // Keep the existing messages visible if polling briefly fails.
+        if (active) {
+          setError('Unable to refresh this conversation.');
+        }
       }
+    };
+
+    void loadMessages();
+
+    const interval = window.setInterval(() => {
+      void loadMessages();
     }, 3000);
 
     return () => {
@@ -148,23 +236,34 @@ export default function MessagesClient({
     });
   }, [messages.length]);
 
-  async function selectConversation(id: string) {
-    setSelectedId(id);
-    setError(null);
+  function clearComposer() {
+    setBody('');
     setReplyTo(null);
     setEditing(null);
-    setBody('');
     setFiles([]);
+
+    if (fileRef.current) {
+      fileRef.current.value = '';
+    }
+  }
+
+  function selectConversation(id: string) {
+    setSelectedId(id);
+    setError(null);
+    clearComposer();
 
     router.replace(`/dashboard/messages?conversationId=${id}`);
   }
 
-  async function uploadFiles(): Promise<UploadedFile[]> {
-    const uploaded: UploadedFile[] = [];
+  async function uploadFiles(): Promise<MessageAttachmentInput[]> {
+    const uploaded: MessageAttachmentInput[] = [];
 
     for (const file of files) {
-      const formData = new FormData();
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error(`${file.name} exceeds the 10 MB file limit.`);
+      }
 
+      const formData = new FormData();
       formData.append('file', file);
 
       const response = await fetch('/api/messages/upload', {
@@ -193,6 +292,10 @@ export default function MessagesClient({
       return;
     }
 
+    if (editing && !body.trim()) {
+      return;
+    }
+
     setBusy(true);
     setError(null);
 
@@ -201,10 +304,8 @@ export default function MessagesClient({
         const result = await updateMessage(editing.id, body.trim());
 
         if (!result.success) {
-          throw new Error('Unable to update the message.');
+          throw new Error(result.error ?? 'Unable to update the message.');
         }
-
-        setEditing(null);
       } else {
         const uploaded = await uploadFiles();
 
@@ -213,20 +314,12 @@ export default function MessagesClient({
         if (!result.success) {
           throw new Error('Unable to send the message.');
         }
-
-        setReplyTo(null);
       }
 
-      setBody('');
-      setFiles([]);
-
-      if (fileRef.current) {
-        fileRef.current.value = '';
-      }
-
+      clearComposer();
       await refreshConversation(selectedId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to send the message.');
+      setError(err instanceof Error ? err.message : 'Unable to complete the request.');
     } finally {
       setBusy(false);
     }
@@ -244,7 +337,7 @@ export default function MessagesClient({
       const result = await deleteMessage(id);
 
       if (!result.success) {
-        throw new Error('Unable to delete the message.');
+        throw new Error(result.error ?? 'Unable to delete the message.');
       }
 
       if (selectedId) {
@@ -257,22 +350,19 @@ export default function MessagesClient({
     }
   }
 
-  function beginEdit(message: Messages[number]) {
+  function beginEdit(message: Message) {
     setEditing(message);
     setReplyTo(null);
     setBody(message.body);
     setFiles([]);
+
+    if (fileRef.current) {
+      fileRef.current.value = '';
+    }
   }
 
-  function beginReply(message: Messages[number]) {
+  function beginReply(message: Message) {
     setReplyTo(message);
-    setEditing(null);
-    setBody('');
-    setFiles([]);
-  }
-
-  function cancelComposerMode() {
-    setReplyTo(null);
     setEditing(null);
     setBody('');
     setFiles([]);
@@ -282,76 +372,8 @@ export default function MessagesClient({
     }
   }
 
-  function isPreviewable(file?: MessageAttachmentInput | null) {
-    return Boolean(
-      file?.mimeType?.startsWith('image/') ||
-      file?.mimeType?.startsWith('video/') ||
-      file?.mimeType === 'application/pdf'
-    );
-  }
-
-  function attachmentIcon(mimeType?: string | null) {
-    if (mimeType?.startsWith('image/')) {
-      return <ImageIcon className="size-4" />;
-    }
-
-    if (mimeType?.startsWith('video/')) {
-      return <Video className="size-4" />;
-    }
-
-    return <FileText className="size-4" />;
-  }
-
-  function getInitials(name?: string | null, email?: string | null) {
-    const value = name?.trim() || email?.trim();
-
-    if (!value) {
-      return '?';
-    }
-
-    const parts = value.split(/\s+/);
-
-    if (parts.length === 1) {
-      return parts[0].slice(0, 2).toUpperCase();
-    }
-
-    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-  }
-
-  function renderAvatar(user?: AvatarUser | null, size: 'sm' | 'md' = 'sm') {
-    const sizeClass = size === 'md' ? 'size-10' : 'size-8';
-
-    const iconClass = size === 'md' ? 'size-5' : 'size-4';
-
-    const fallbackText = getInitials(user?.name, user?.email);
-
-    return (
-      <div
-        className={`${sizeClass} relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted shadow-sm`}>
-        {user?.image ? (
-          <img
-            src={user.image}
-            alt={user.name ?? 'User'}
-            className="absolute inset-0 size-full object-cover"
-            referrerPolicy="no-referrer"
-            onError={event => {
-              event.currentTarget.style.display = 'none';
-            }}
-          />
-        ) : null}
-
-        <span className="text-[10px] font-semibold text-muted-foreground">{fallbackText}</span>
-
-        {!user && <UserRound className={`${iconClass} absolute text-muted-foreground`} />}
-      </div>
-    );
-  }
-
-  function formatTime(date: Date) {
-    return date.toLocaleTimeString('en-NG', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  function openPreview(attachment: MessageAttachment) {
+    setPreview(attachment);
   }
 
   if (requestedWith && !requestedConversationId && !selectedId) {
@@ -431,11 +453,11 @@ export default function MessagesClient({
                   <button
                     key={conversation.id}
                     type="button"
-                    onClick={() => void selectConversation(conversation.id)}
+                    onClick={() => selectConversation(conversation.id)}
                     className={`flex w-full gap-3 border-b p-4 text-left transition-colors ${
                       active ? 'bg-primary/[0.07]' : 'hover:bg-muted/60'
                     }`}>
-                    {renderAvatar(other, 'md')}
+                    <Avatar user={other} size="md" />
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
@@ -451,7 +473,7 @@ export default function MessagesClient({
                       </div>
 
                       <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {latest?.deletedAt ? 'Message deleted' : latest?.body || 'No messages yet'}
+                        {latest?.body || 'No messages yet'}
                       </p>
                     </div>
                   </button>
@@ -483,15 +505,17 @@ export default function MessagesClient({
               <header className="flex shrink-0 items-center gap-3 border-b bg-card px-4 py-3 sm:px-5">
                 <button
                   type="button"
+                  aria-label="Back to conversations"
                   className="rounded-lg p-2 transition hover:bg-muted lg:hidden"
                   onClick={() => {
                     setSelectedId(null);
+                    clearComposer();
                     router.replace('/dashboard/messages');
                   }}>
                   <ArrowLeft className="size-5" />
                 </button>
 
-                {renderAvatar(otherUser, 'md')}
+                <Avatar user={otherUser} size="md" />
 
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-sm font-semibold">
@@ -501,7 +525,7 @@ export default function MessagesClient({
                   <p className="text-xs text-muted-foreground">Direct conversation</p>
                 </div>
 
-                <Button variant="ghost" size="icon" className="rounded-full">
+                <Button type="button" variant="ghost" size="icon" className="rounded-full">
                   <MoreHorizontal className="size-4" />
                 </Button>
               </header>
@@ -532,8 +556,11 @@ export default function MessagesClient({
                       <div
                         key={message.id}
                         className={`group flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
-                        {/* Incoming avatar */}
-                        {!mine && <div className="mb-0.5 self-end">{renderAvatar(sender, 'sm')}</div>}
+                        {!mine && (
+                          <div className="mb-0.5 self-end">
+                            <Avatar user={sender} size="sm" />
+                          </div>
+                        )}
 
                         <div
                           className={`flex min-w-0 max-w-[88%] items-end gap-2 sm:max-w-[75%] ${
@@ -546,7 +573,6 @@ export default function MessagesClient({
                               </p>
                             )}
 
-                            {/* Message bubble */}
                             <div
                               className={`rounded-2xl border px-3.5 py-2.5 shadow-sm ${
                                 mine
@@ -557,13 +583,15 @@ export default function MessagesClient({
                               {message.replyTo && !deleted && (
                                 <button
                                   type="button"
-                                  onClick={() => beginReply(message.replyTo as Messages[number])}
+                                  onClick={() => beginReply(message.replyTo as Message)}
                                   className={`mb-2 block w-full rounded-lg border-l-2 px-2.5 py-1.5 text-left text-xs ${
                                     mine
-                                      ? 'border-primary-foreground/50 bg-primary-foreground/10'
+                                      ? 'border-white/50 bg-white/10 text-white'
                                       : 'border-primary bg-muted'
                                   }`}>
-                                  <span className="font-semibold">{message.replyTo.sender.name}</span>
+                                  <span className="font-semibold">
+                                    {message.replyTo.sender.name ?? 'User'}
+                                  </span>
 
                                   <span className="mt-0.5 block truncate opacity-70">
                                     {message.replyTo.deletedAt
@@ -583,20 +611,18 @@ export default function MessagesClient({
                               )}
 
                               {/* Attachments */}
-                              {message.attachments.length > 0 && !deleted && (
+                              {!deleted && message.attachments.length > 0 && (
                                 <div className={`space-y-2 ${message.body ? 'mt-2' : ''}`}>
                                   {message.attachments.map(file => (
                                     <div
                                       key={file.id}
                                       className={`overflow-hidden rounded-xl border ${
-                                        mine
-                                          ? 'border-primary-foreground/15 bg-primary-foreground/10'
-                                          : 'bg-muted/50'
+                                        mine ? 'border-white/15 bg-white/10' : 'bg-muted/50'
                                       }`}>
                                       {file.mimeType?.startsWith('image/') ? (
                                         <button
                                           type="button"
-                                          onClick={() => setPreview(file)}
+                                          onClick={() => openPreview(file)}
                                           className="block w-full">
                                           <img
                                             src={file.url}
@@ -608,9 +634,9 @@ export default function MessagesClient({
                                         <div className="flex items-center gap-3 p-2.5">
                                           <div
                                             className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
-                                              mine ? 'bg-primary-foreground/10' : 'bg-background'
+                                              mine ? 'bg-white/10' : 'bg-background'
                                             }`}>
-                                            {attachmentIcon(file.mimeType)}
+                                            <AttachmentIcon mimeType={file.mimeType} />
                                           </div>
 
                                           <div className="min-w-0 flex-1">
@@ -626,7 +652,7 @@ export default function MessagesClient({
                                               type="button"
                                               size="sm"
                                               variant={mine ? 'secondary' : 'outline'}
-                                              onClick={() => setPreview(file)}>
+                                              onClick={() => openPreview(file)}>
                                               Preview
                                             </Button>
                                           )}
@@ -635,7 +661,7 @@ export default function MessagesClient({
                                             href={file.url}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition hover:bg-black/5">
+                                            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-black/5">
                                             <Download className="size-4" />
                                           </a>
                                         </div>
@@ -648,7 +674,7 @@ export default function MessagesClient({
                               {/* Metadata */}
                               <div
                                 className={`mt-1 flex items-center justify-end gap-1 text-[9px] ${
-                                  mine ? 'text-primary-foreground/65' : 'text-muted-foreground'
+                                  mine ? 'text-white/65' : 'text-muted-foreground'
                                 }`}>
                                 {message.updatedAt.getTime() !== message.createdAt.getTime() && !deleted && (
                                   <span>edited</span>
@@ -701,8 +727,11 @@ export default function MessagesClient({
                           )}
                         </div>
 
-                        {/* Outgoing avatar */}
-                        {mine && <div className="mb-0.5 self-end">{renderAvatar(sender, 'sm')}</div>}
+                        {mine && (
+                          <div className="mb-0.5 self-end">
+                            <Avatar user={sender} size="sm" />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -738,7 +767,7 @@ export default function MessagesClient({
                       </p>
                     </div>
 
-                    <Button type="button" variant="ghost" size="sm" onClick={cancelComposerMode}>
+                    <Button type="button" variant="ghost" size="sm" onClick={clearComposer}>
                       Cancel
                     </Button>
                   </div>
@@ -759,6 +788,7 @@ export default function MessagesClient({
 
                         <button
                           type="button"
+                          aria-label={`Remove ${file.name}`}
                           className="text-muted-foreground transition hover:text-foreground"
                           onClick={() => setFiles(current => current.filter(item => item !== file))}>
                           ×
@@ -811,7 +841,7 @@ export default function MessagesClient({
 
                   <Button
                     type="button"
-                    disabled={busy || (!body.trim() && files.length === 0)}
+                    disabled={busy || (editing ? !body.trim() : !body.trim() && files.length === 0)}
                     onClick={() => void submitMessage()}
                     className="size-10 shrink-0 rounded-xl"
                     size="icon">

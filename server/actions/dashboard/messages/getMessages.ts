@@ -1,3 +1,4 @@
+
 'use server';
 
 import { requireAuth } from '@/server/auth/requireAuth';
@@ -13,7 +14,9 @@ export async function getMessages(conversationId: string) {
         userId: user.id
       }
     },
-    select: { conversationId: true }
+    select: {
+      conversationId: true
+    }
   });
 
   if (!participant) {
@@ -21,18 +24,77 @@ export async function getMessages(conversationId: string) {
   }
 
   return prisma.message.findMany({
-    where: { conversationId },
-    orderBy: { createdAt: 'asc' },
+    where: {
+      conversationId
+    },
+
+    orderBy: {
+      createdAt: 'asc'
+    },
+
     select: {
       id: true,
       body: true,
       senderId: true,
       createdAt: true,
+      updatedAt: true,
+      deletedAt: true,
+
       sender: {
         select: {
           id: true,
           name: true,
-          image: true
+          email: true,
+          image: true,
+          role: true,
+
+          company: {
+            select: {
+              companyLogoUrl: true
+            }
+          },
+
+          jobSeeker: {
+            select: {
+              profilePhotoUrl: true
+            }
+          }
+        }
+      },
+
+      replyTo: {
+        select: {
+          id: true,
+          body: true,
+          senderId: true,
+          createdAt: true,
+          updatedAt: true,
+          deletedAt: true,
+
+          sender: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true
+            }
+          }
+        }
+      },
+
+      attachments: {
+        orderBy: {
+          createdAt: 'asc'
+        },
+
+        select: {
+          id: true,
+          url: true,
+          publicId: true,
+          fileName: true,
+          mimeType: true,
+          size: true,
+          resourceType: true
         }
       }
     }
