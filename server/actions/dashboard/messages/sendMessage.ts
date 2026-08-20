@@ -1,9 +1,12 @@
 'use server';
 
+import { after } from 'next/server';
 import { revalidatePath } from 'next/cache';
 
 import { requireAuth } from '@/server/auth/requireAuth';
 import { prisma } from '@/server/db/prisma';
+
+import { notifyNewMessage } from '@/server/actions/dashboard/notifications/notificationTemplates';
 
 export type MessageAttachmentInput = {
   fileName: string;
@@ -38,17 +41,18 @@ export async function sendMessage(
       };
     }
 
-    const participant = await prisma.conversationParticipant.findUnique({
-      where: {
-        conversationId_userId: {
-          conversationId,
-          userId: user.id
+    const participant =
+      await prisma.conversationParticipant.findUnique({
+        where: {
+          conversationId_userId: {
+            conversationId,
+            userId: user.id
+          }
+        },
+        select: {
+          conversationId: true
         }
-      },
-      select: {
-        conversationId: true
-      }
-    });
+      });
 
     if (!participant) {
       return {
@@ -58,24 +62,32 @@ export async function sendMessage(
     }
 
     if (replyToId) {
-      const replyTarget = await prisma.message.findFirst({
-        where: {
-          id: replyToId,
-          conversationId
-        },
-        select: {
-          id: true
-        }
-      });
+      const replyTarget =
+        await prisma.message.findFirst({
+          where: {
+            id: replyToId,
+            conversationId
+          },
+          select: {
+            id: true
+          }
+        });
 
       if (!replyTarget) {
         return {
           success: false,
-          error: 'The message you are replying to no longer exists.'
+          error:
+            'The message you are replying to no longer exists.'
         };
       }
     }
 
+    /*
+     * The message itself is the critical operation.
+     *
+     * Once this succeeds, the sender should not have to wait
+     * for notification generation before seeing the message.
+     */
     const created = await prisma.message.create({
       data: {
         conversationId,
@@ -93,6 +105,7 @@ export async function sendMessage(
           }))
         }
       },
+
       select: {
         id: true
       }
@@ -104,6 +117,81 @@ export async function sendMessage(
       },
       data: {
         updatedAt: new Date()
+      }
+    });
+
+    /*
+     * Notification generation happens after the response work
+     * has completed. It is deliberately removed from the
+     * critical message-send path.
+     */
+    after(async () => {
+      try {
+        const [recipientParticipants, sender] =
+          await Promise.all([
+            prisma.conversationParticipant.findMany({
+              where: {
+                conversationId,
+                userId: {
+                  not: user.id
+                }
+              },
+              select: {
+                userId: true
+              }
+            }),
+
+            prisma.user.findUnique({
+              where: {
+                id: user.id
+              },
+              select: {
+                name: true,
+                email: true
+              }
+            })
+          ]);
+
+        if (recipientParticipants.length === 0) {
+          return;
+        }
+
+        const senderName =
+          sender?.name?.trim() ||
+          sender?.email ||
+          'Someone';
+
+        const messagePreview =
+          message ||
+          (attachments.length > 0
+            ? `Sent ${
+                attachments.length === 1
+                  ? 'an attachment'
+                  : `${attachments.length} attachments`
+              }.`
+            : 'You received a new message.');
+
+        await Promise.all(
+          recipientParticipants.map(recipient =>
+            notifyNewMessage({
+              userId: recipient.userId,
+              conversationId,
+              senderName,
+              messagePreview
+            })
+          )
+        );
+
+        revalidatePath('/dashboard/notifications');
+      } catch (error) {
+        /*
+         * Notification failure must not invalidate a message
+         * that has already been successfully saved.
+         */
+        console.error(
+          'Failed to create message notification:',
+          error
+        );
       }
     });
 
