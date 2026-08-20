@@ -137,8 +137,7 @@ const jobSeekerNavigation: NavigationGroup[] = [
       {
         label: 'Messages',
         href: '/dashboard/messages',
-        icon: MessageSquare,
-        inactive: true
+        icon: MessageSquare
       },
       {
         label: 'Notifications',
