@@ -245,19 +245,19 @@ function InterviewCard({
   interview: InterviewCardInterview;
   showActions?: boolean;
 }) {
-  async function startInterviewAction(_formData: FormData) {
+  const inPerson = isInPersonInterview(interview.type);
+
+  async function startInterviewAction(_formData: FormData): Promise<void> {
     await manageInterview(interview.id, 'START');
   }
 
-  async function completeInterviewAction(_formData: FormData) {
+  async function completeInterviewAction(_formData: FormData): Promise<void> {
     await manageInterview(interview.id, 'COMPLETE');
   }
 
-  async function cancelInterviewAction(formData: FormData) {
+  async function cancelInterviewAction(formData: FormData): Promise<void> {
     await manageInterview(interview.id, 'CANCEL', formData);
   }
-
-  const inPerson = isInPersonInterview(interview.type);
 
   return (
     <article className="overflow-hidden rounded-2xl border bg-card shadow-sm">

@@ -140,7 +140,7 @@ function ComingSoonNavigationItem({ label, icon: Icon }: ComingSoonNavigationIte
 
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
             For now, continue using the available workspace features. We’ll bring this section online as soon
-            as it's completed.
+            as it&lsquo;s completed.
           </p>
         </div>
 

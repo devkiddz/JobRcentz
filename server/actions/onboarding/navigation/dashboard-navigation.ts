@@ -54,8 +54,7 @@ const employerNavigation: NavigationGroup[] = [
       {
         label: 'Interviews',
         href: '/dashboard/employer/interviews',
-        icon: CalendarDays,
-        inactive: true
+        icon: CalendarDays
       }
     ]
   },
@@ -77,8 +76,7 @@ const employerNavigation: NavigationGroup[] = [
       {
         label: 'Notifications',
         href: '/dashboard/notifications',
-        icon: Bell,
-        inactive: true
+        icon: Bell
       }
     ]
   },
@@ -131,8 +129,7 @@ const jobSeekerNavigation: NavigationGroup[] = [
       {
         label: 'Interviews',
         href: '/dashboard/interviews',
-        icon: CalendarDays,
-        inactive: true
+        icon: CalendarDays
       }
     ]
   },
@@ -148,8 +145,7 @@ const jobSeekerNavigation: NavigationGroup[] = [
       {
         label: 'Notifications',
         href: '/dashboard/notifications',
-        icon: Bell,
-        inactive: true
+        icon: Bell
       }
     ]
   },
