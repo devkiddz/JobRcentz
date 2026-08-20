@@ -30,6 +30,7 @@ import { getMessages } from '@/server/actions/dashboard/messages/getMessages';
 import { sendMessage, type MessageAttachmentInput } from '@/server/actions/dashboard/messages/sendMessage';
 import { updateMessage } from '@/server/actions/dashboard/messages/updateMessage';
 import { deleteMessage } from '@/server/actions/dashboard/messages/deleteMessage';
+import { markNotificationsReadByHref } from '@/server/actions/dashboard/notifications/markNotificationsReadByHref';
 
 export type Conversations = Awaited<ReturnType<typeof getConversations>>;
 export type Messages = Awaited<ReturnType<typeof getMessages>>;
@@ -235,6 +236,18 @@ export default function MessagesClient({
       behavior: 'smooth'
     });
   }, [messages.length]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      return;
+    }
+
+    const notificationHref = `/dashboard/messages?conversationId=${selectedId}`;
+
+    void markNotificationsReadByHref(notificationHref).catch(error => {
+      console.error('Failed to mark message notifications as read:', error);
+    });
+  }, [selectedId]);
 
   function clearComposer() {
     setBody('');
