@@ -1,3 +1,4 @@
+
 'use server';
 
 import { requireAuth } from '@/server/auth/requireAuth';
@@ -135,7 +136,8 @@ export async function getEmployerInterview(interviewId: string) {
         },
         select: {
           id: true,
-          content: true,
+          body: true,
+          visibility: true,
           createdAt: true,
           updatedAt: true,
           authorId: true,
@@ -162,6 +164,7 @@ export async function getEmployerInterview(interviewId: string) {
           strengths: true,
           weaknesses: true,
           feedback: true,
+          metadata: true,
           createdAt: true,
           updatedAt: true,
           evaluator: {
@@ -189,34 +192,34 @@ export async function getEmployerInterview(interviewId: string) {
         },
         select: {
           id: true,
+          type: true,
+          provider: true,
+          externalSessionId: true,
           startedAt: true,
           endedAt: true,
-          durationSeconds: true,
-          status: true
+          recordingUrl: true,
+          transcriptUrl: true,
+          status: true,
+          metadata: true,
+          createdAt: true,
+          updatedAt: true
         }
       },
 
       events: {
-  orderBy: {
-    createdAt: 'desc'
-    },
+        orderBy: {
+          createdAt: 'desc'
+        },
         take: 50,
         select: {
-            id: true,
-            type: true,
-            actorId: true,
-            metadata: true,
-            createdAt: true,
-            actor: {
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                image: true
-            }
-            }
+          id: true,
+          type: true,
+          actorId: true,
+          metadata: true,
+          createdAt: true
         }
-            },
+      },
+
       _count: {
         select: {
           tasks: true,

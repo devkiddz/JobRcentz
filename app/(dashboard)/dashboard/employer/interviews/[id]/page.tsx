@@ -401,39 +401,45 @@ export default async function EmployerInterviewDetailPage({ params }: { params: 
           <section className="rounded-2xl border bg-card p-5 shadow-sm">
             <h2 className="text-sm font-semibold">Application</h2>
 
-            <div className="mt-4 space-y-3">
-              <div>
-                <p className="text-[11px] text-muted-foreground">Status</p>
-
-                <p className="mt-1 text-xs font-semibold">{formatLabel(interview.application.status)}</p>
-              </div>
-
-              <div>
-                <p className="text-[11px] text-muted-foreground">Applied</p>
-
-                <p className="mt-1 text-xs font-medium">{formatDate(interview.application.appliedAt)}</p>
-              </div>
-
-              {interview.application.coverLetter && (
+            {!interview.application ? (
+              <p className="mt-4 text-xs text-muted-foreground">
+                This interview is not linked to an application.
+              </p>
+            ) : (
+              <div className="mt-4 space-y-3">
                 <div>
-                  <p className="text-[11px] text-muted-foreground">Cover letter</p>
+                  <p className="text-[11px] text-muted-foreground">Status</p>
 
-                  <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">
-                    {interview.application.coverLetter}
-                  </p>
+                  <p className="mt-1 text-xs font-semibold">{formatLabel(interview.application.status)}</p>
                 </div>
-              )}
 
-              {interview.application.cvUrl && (
-                <a
-                  href={interview.application.cvUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-8 items-center rounded-lg border px-2.5 text-[11px] font-medium hover:bg-muted">
-                  View CV
-                </a>
-              )}
-            </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground">Applied</p>
+
+                  <p className="mt-1 text-xs font-medium">{formatDate(interview.application.appliedAt)}</p>
+                </div>
+
+                {interview.application.coverLetter && (
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Cover letter</p>
+
+                    <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">
+                      {interview.application.coverLetter}
+                    </p>
+                  </div>
+                )}
+
+                {interview.application.cvUrl && (
+                  <a
+                    href={interview.application.cvUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-8 items-center rounded-lg border px-2.5 text-[11px] font-medium hover:bg-muted">
+                    View CV
+                  </a>
+                )}
+              </div>
+            )}
           </section>
 
           <section className="rounded-2xl border bg-card p-5 shadow-sm">
@@ -441,7 +447,7 @@ export default async function EmployerInterviewDetailPage({ params }: { params: 
 
             <p className="mt-3 whitespace-pre-wrap text-xs leading-6 text-muted-foreground">
               {interview.notesEntries.length > 0
-                ? interview.notesEntries[0].content
+                ? interview.notesEntries[0].body
                 : 'No interview notes have been added yet.'}
             </p>
           </section>
