@@ -4,20 +4,14 @@ import { revalidatePath } from 'next/cache';
 
 import { requireAuth } from '@/server/auth/requireAuth';
 import { prisma } from '@/server/db/prisma';
+import { notifyInterviewScheduled } from '@/server/actions/dashboard/notifications/notificationTemplates';
 
 type ScheduleInterviewResult =
-  | {
-      success: true;
-      interviewId: string;
-    }
-  | {
-      success: false;
-      error: string;
-    };
+  | { success: true; interviewId: string }
+  | { success: false; error: string };
 
 function isValidDate(value: string) {
   const date = new Date(value);
-
   return !Number.isNaN(date.getTime());
 }
 
@@ -35,39 +29,24 @@ export async function scheduleApplicationInterview(
     const user = await requireAuth();
 
     const dbUser = await prisma.user.findUnique({
-      where: {
-        id: user.id
-      },
+      where: { id: user.id },
       select: {
         id: true,
         role: true,
-        company: {
-          select: {
-            id: true
-          }
-        }
+        company: { select: { id: true } }
       }
     });
 
     if (!dbUser) {
-      return {
-        success: false,
-        error: 'User account not found.'
-      };
+      return { success: false, error: 'User account not found.' };
     }
 
     if (dbUser.role !== 'EMPLOYER') {
-      return {
-        success: false,
-        error: 'Employer account required.'
-      };
+      return { success: false, error: 'Employer account required.' };
     }
 
     if (!dbUser.company) {
-      return {
-        success: false,
-        error: 'Company profile not found.'
-      };
+      return { success: false, error: 'Company profile not found.' };
     }
 
     if (!data.scheduledAt || !isValidDate(data.scheduledAt)) {
@@ -100,23 +79,23 @@ export async function scheduleApplicationInterview(
     const application = await prisma.application.findFirst({
       where: {
         id: applicationId,
-        job: {
-          companyId: dbUser.company.id
-        }
+        job: { companyId: dbUser.company.id }
       },
       select: {
         id: true,
         jobId: true,
         applicantId: true,
-        status: true
+        status: true,
+        job: {
+          select: {
+            title: true
+          }
+        }
       }
     });
 
     if (!application) {
-      return {
-        success: false,
-        error: 'Application not found.'
-      };
+      return { success: false, error: 'Application not found.' };
     }
 
     if (application.status === 'REJECTED') {
@@ -153,29 +132,28 @@ export async function scheduleApplicationInterview(
         location: data.location?.trim() || null,
         notes: data.notes?.trim() || null
       },
-      select: {
-        id: true
-      }
+      select: { id: true }
     });
 
     await prisma.application.update({
-      where: {
-        id: application.id
-      },
-      data: {
-        status: 'INTERVIEW'
-      }
+      where: { id: application.id },
+      data: { status: 'INTERVIEW' }
+    });
+    await notifyInterviewScheduled({
+      userId: application.applicantId,
+      interviewId: interview.id,
+      jobTitle: application.job.title,
+      scheduledAt
     });
 
     revalidatePath(`/dashboard/employer/applications/${application.id}`);
-
     revalidatePath(
       `/dashboard/employer/jobs/${application.jobId}/applications`
     );
-
     revalidatePath(`/dashboard/employer/jobs/${application.jobId}`);
-
     revalidatePath('/dashboard/employer/applications');
+    revalidatePath('/dashboard/applications');
+    revalidatePath('/dashboard/interviews');
 
     return {
       success: true,

@@ -1,0 +1,226 @@
+import { notFound } from 'next/navigation';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  BriefcaseBusiness,
+  CalendarDays,
+  ExternalLink,
+  MessageSquare,
+  MapPin,
+  Star,
+  UserRound
+} from 'lucide-react';
+
+import { getEmployerCandidate } from '@/server/actions/dashboard/employer/candidates/getEmployerCandidate';
+
+export default async function EmployerCandidatePage({
+  params
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const data = await getEmployerCandidate(id);
+
+  if (!data) notFound();
+
+  const { candidate, applications } = data;
+  const profile = candidate.jobSeeker;
+
+  return (
+    <main className="mx-auto w-full max-w-6xl space-y-6 p-4 lg:p-8">
+      <Link
+        href="/dashboard/employer/candidates"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="size-4" />
+        Back to candidates
+      </Link>
+
+      <section className="rounded-2xl border bg-card p-6">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+          <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
+            {profile.profilePhotoUrl || candidate.image ? (
+              <img
+                src={profile.profilePhotoUrl ?? candidate.image ?? ''}
+                alt={candidate.name}
+                className="size-full object-cover"
+              />
+            ) : (
+              <UserRound className="size-8 text-muted-foreground" />
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {candidate.name}
+            </h1>
+            <p className="mt-1 text-muted-foreground">
+              {profile.currentRole ?? profile.headline}
+            </p>
+
+            <div className="mt-3 flex flex-wrap gap-3 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="size-4" />
+                {profile.location}
+              </span>
+
+              {profile.yearsOfExperience !== null && (
+                <span className="inline-flex items-center gap-1.5">
+                  <BriefcaseBusiness className="size-4" />
+                  {profile.yearsOfExperience} years experience
+                </span>
+              )}
+
+              <span className="inline-flex items-center gap-1.5">
+                <Star className="size-4" />
+                {profile.averageRating.toFixed(1)} ({profile.ratingCount})
+              </span>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link
+                href={`/dashboard/messages?with=${candidate.id}`}
+                className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                <MessageSquare className="size-4" />
+                Message candidate
+              </Link>
+
+              {profile.cvUrl && (
+                <a
+                  href={profile.cvUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-9 items-center gap-2 rounded-lg border px-4 text-sm font-medium hover:bg-muted">
+                  Open CV
+                  <ExternalLink className="size-4" />
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {profile.bio && (
+          <div className="mt-6 border-t pt-6">
+            <h2 className="font-medium">About</h2>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+              {profile.bio}
+            </p>
+          </div>
+        )}
+
+        {profile.skills.length > 0 && (
+          <div className="mt-6 border-t pt-6">
+            <h2 className="font-medium">Skills</h2>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {profile.skills.map((skill) => (
+                <span
+                  key={skill}
+                  className="rounded-full bg-muted px-3 py-1 text-xs">
+                  {skill}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-2xl border bg-card">
+        <div className="border-b p-6">
+          <h2 className="text-lg font-semibold">Applications</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            This candidate's applications to your company.
+          </p>
+        </div>
+
+        <div className="divide-y">
+          {applications.map((application) => (
+            <div key={application.id} className="p-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <Link
+                    href={`/dashboard/employer/applications/${application.id}`}
+                    className="font-medium hover:text-primary">
+                    {application.job.title}
+                  </Link>
+
+                  <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                    <span>{application.status}</span>
+                    <span>{application.job.workMode}</span>
+                    <span>{application.job.employmentType}</span>
+                    {application.job.location && (
+                      <span>{application.job.location}</span>
+                    )}
+                  </div>
+                </div>
+
+                <span className="text-xs text-muted-foreground">
+                  {application.appliedAt.toLocaleDateString('en-NG')}
+                </span>
+              </div>
+
+              {application.interviews.length > 0 && (
+                <div className="mt-4 rounded-xl bg-muted/50 p-4">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <CalendarDays className="size-4" />
+                    Interviews
+                  </div>
+
+                  <div className="mt-3 space-y-2">
+                    {application.interviews.map((interview) => (
+                      <div
+                        key={interview.id}
+                        className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
+                        <span>
+                          {interview.title ?? 'Interview'} · {interview.status}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {interview.scheduledAt.toLocaleString('en-NG')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {profile.portfolioProjects.length > 0 && (
+        <section className="rounded-2xl border bg-card p-6">
+          <h2 className="text-lg font-semibold">Portfolio</h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {profile.portfolioProjects.map((project) => (
+              <article key={project.id} className="rounded-xl border p-4">
+                <h3 className="font-medium">{project.title}</h3>
+                <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
+                  {project.description}
+                </p>
+
+                <div className="mt-3 flex gap-3 text-xs">
+                  {project.projectUrl && (
+                    <a
+                      href={project.projectUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-primary">
+                      Project
+                    </a>
+                  )}
+                  {project.githubUrl && (
+                    <a
+                      href={project.githubUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-primary">
+                      GitHub
+                    </a>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+    </main>
+  );
+}
