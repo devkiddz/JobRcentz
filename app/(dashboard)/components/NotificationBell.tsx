@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Bell, BellRing, CheckCheck, ChevronRight, Loader2 } from 'lucide-react';
 
@@ -31,7 +31,7 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  async function loadUnreadCount() {
+  const loadUnreadCount = useCallback(async () => {
     try {
       const count = await getUnreadNotificationCount();
 
@@ -39,9 +39,9 @@ export default function NotificationBell() {
     } catch (error) {
       console.error('Failed to load unread notification count:', error);
     }
-  }
+  }, []);
 
-  async function loadNotifications() {
+  const loadNotifications = useCallback(async () => {
     setLoading(true);
 
     try {
@@ -54,32 +54,19 @@ export default function NotificationBell() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    let active = true;
+    void loadUnreadCount();
 
-    async function loadInitialCount() {
-      try {
-        const count = await getUnreadNotificationCount();
-
-        if (active) {
-          setUnreadCount(count);
-        }
-      } catch (error) {
-        console.error('Failed to load unread notification count:', error);
-      }
-    }
-
-    loadInitialCount();
-
-    const interval = window.setInterval(loadInitialCount, 30_000);
+    const interval = window.setInterval(() => {
+      void loadUnreadCount();
+    }, 30_000);
 
     return () => {
-      active = false;
       window.clearInterval(interval);
     };
-  }, []);
+  }, [loadUnreadCount]);
 
   async function handleToggle() {
     const nextOpen = !open;
@@ -105,19 +92,7 @@ export default function NotificationBell() {
         return;
       }
 
-      setNotifications(current =>
-        current.map(notification =>
-          notification.id === notificationId
-            ? {
-                ...notification,
-                isRead: true,
-                readAt: new Date()
-              }
-            : notification
-        )
-      );
-
-      setUnreadCount(current => Math.max(0, current - 1));
+      await loadNotifications();
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
     } finally {
@@ -139,15 +114,7 @@ export default function NotificationBell() {
         return;
       }
 
-      setNotifications(current =>
-        current.map(notification => ({
-          ...notification,
-          isRead: true,
-          readAt: new Date()
-        }))
-      );
-
-      setUnreadCount(0);
+      await loadNotifications();
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
     } finally {

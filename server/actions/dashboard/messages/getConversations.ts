@@ -14,39 +14,61 @@ export async function getConversations() {
         }
       }
     },
+
     orderBy: {
       updatedAt: 'desc'
     },
+
     select: {
       id: true,
       type: true,
       updatedAt: true,
+
       participants: {
         where: {
           userId: {
             not: user.id
           }
         },
+
         select: {
           user: {
             select: {
               id: true,
               name: true,
               email: true,
-              image: true
+              image: true,
+              role: true,
+
+              jobSeeker: {
+                select: {
+                  profilePhotoUrl: true
+                }
+              },
+
+              company: {
+                select: {
+                  companyLogoUrl: true
+                }
+              }
             }
           }
         }
       },
+
       messages: {
         orderBy: {
           createdAt: 'desc'
         },
+
         take: 1,
+
         select: {
+          id: true,
           body: true,
           createdAt: true,
-          senderId: true
+          senderId: true,
+          deletedAt: true
         }
       }
     }

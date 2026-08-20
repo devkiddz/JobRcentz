@@ -212,7 +212,7 @@ export default function LoginPage() {
           {/* Register */}
           <div className="border-t pt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Don&apos;t have a JobMan account?{' '}
+              Don't have a JobMan account?
               <Link href="/register" className="font-semibold text-primary hover:underline">
                 Create an account
               </Link>

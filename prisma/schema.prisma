@@ -913,13 +913,38 @@ model Message {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
+  replyToId      String?
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
+  replyTo Message?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies Message[] @relation("MessageReplies")
+
+  attachments MessageAttachment[]
+
+  @@index([replyToId])
   @@index([conversationId, createdAt])
   @@index([senderId])
   @@map("message")
+}
+
+model MessageAttachment {
+  id           String   @id @default(cuid())
+  messageId    String
+  url          String
+  publicId     String?
+  fileName     String
+  mimeType     String?
+  size         Int?
+  resourceType String?
+  createdAt    DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([createdAt])
+  @@map("message_attachment")
 }
 
 model Session {
