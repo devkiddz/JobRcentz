@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Plus, Search } from 'lucide-react';
+
+import NotificationBell from './NotificationBell';
 import { motion, type Variants } from 'framer-motion';
 
 import type { DashboardUser } from '@/server/actions/dashboard/getDashboardUser';
@@ -229,6 +231,7 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
           </Button> */}
 
           {/* Employer quick action */}
+          {/* Employer quick action */}
           {showEmployerQuickAction && (
             <Link
               href="/dashboard/employer/jobs/create"
@@ -243,6 +246,11 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
             </Link>
           )}
 
+          {/* Notifications */}
+          <NotificationBell />
+
+          {/* Divider */}
+          <div aria-hidden="true" className="mx-1 hidden h-7 w-px bg-border sm:block" />
           {/* Divider */}
           <div aria-hidden="true" className="mx-1 hidden h-7 w-px bg-border sm:block" />
 
