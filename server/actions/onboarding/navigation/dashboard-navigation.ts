@@ -48,8 +48,7 @@ const employerNavigation: NavigationGroup[] = [
       {
         label: 'Candidates',
         href: '/dashboard/employer/candidates',
-        icon: UsersRound,
-        inactive: true
+        icon: UsersRound
       },
       {
         label: 'Interviews',
@@ -64,8 +63,7 @@ const employerNavigation: NavigationGroup[] = [
       {
         label: 'Messages',
         href: '/dashboard/messages',
-        icon: MessageSquare,
-        inactive: true
+        icon: MessageSquare
       },
       {
         label: 'Invitations',
