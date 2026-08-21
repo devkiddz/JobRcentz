@@ -14,28 +14,7 @@ import {
 } from 'lucide-react';
 
 import { getEmployerInterviews } from '@/server/actions/dashboard/employer/interviews/getEmployerInterviews';
-import { manageInterview } from '@/server/actions/dashboard/employer/interviews/manageInterview';
-
-type InterviewAction = 'START' | 'COMPLETE' | 'CANCEL';
-
-async function handleInterviewAction(formData: FormData): Promise<void> {
-  'use server';
-
-  const interviewId = formData.get('interviewId');
-  const action = formData.get('action');
-
-  if (typeof interviewId !== 'string' || !interviewId) {
-    console.error('Interview action rejected: missing interviewId.');
-    return;
-  }
-
-  if (action !== 'START' && action !== 'COMPLETE' && action !== 'CANCEL') {
-    console.error('Interview action rejected: invalid action.');
-    return;
-  }
-
-  await manageInterview(interviewId, action, formData);
-}
+import { InterviewActionControls } from '../applications/[id]/interview/InterviewActionControls';
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat('en-NG', {
@@ -64,15 +43,20 @@ function getStatusClasses(status: string) {
   switch (status) {
     case 'SCHEDULED':
       return 'bg-blue-500/10 text-blue-600 dark:text-blue-400';
+
     case 'RESCHEDULED':
       return 'bg-violet-500/10 text-violet-600 dark:text-violet-400';
+
     case 'IN_PROGRESS':
       return 'bg-amber-500/10 text-amber-600 dark:text-amber-400';
+
     case 'COMPLETED':
       return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
+
     case 'CANCELLED':
     case 'NO_SHOW':
       return 'bg-destructive/10 text-destructive';
+
     default:
       return 'bg-muted text-muted-foreground';
   }
@@ -109,13 +93,8 @@ function isInPersonInterview(type: InterviewCardInterview['type']) {
 
 export default async function EmployerInterviewsPage() {
   const { interviews } = await getEmployerInterviews();
-  const now = new Date();
 
-  const upcoming = interviews.filter(interview => {
-    const scheduledAt = new Date(interview.scheduledAt);
-
-    return scheduledAt >= now && ['SCHEDULED', 'RESCHEDULED'].includes(interview.status);
-  });
+  const upcoming = interviews.filter(interview => ['SCHEDULED', 'RESCHEDULED'].includes(interview.status));
 
   const inProgress = interviews.filter(interview => interview.status === 'IN_PROGRESS');
 
@@ -143,7 +122,10 @@ export default async function EmployerInterviewsPage() {
 
           <span className="font-medium">{interviews.length}</span>
 
-          <span className="text-muted-foreground">total interview{interviews.length === 1 ? '' : 's'}</span>
+          <span className="text-muted-foreground">
+            total interview
+            {interviews.length === 1 ? '' : 's'}
+          </span>
         </div>
       </section>
 
@@ -191,7 +173,7 @@ export default async function EmployerInterviewsPage() {
           description="Interviews that were cancelled before completion."
           empty="">
           {cancelled.map(interview => (
-            <InterviewCard key={interview.id} interview={interview} />
+            <InterviewCard key={interview.id} interview={interview} showActions />
           ))}
         </InterviewSection>
       )}
@@ -387,51 +369,7 @@ function InterviewCard({
             <ArrowRight className="size-3.5" />
           </Link>
 
-          {showActions && (
-            <div className="flex flex-wrap gap-2">
-              {interview.status === 'SCHEDULED' && (
-                <>
-                  <form action={handleInterviewAction}>
-                    <input type="hidden" name="interviewId" value={interview.id} />
-
-                    <input type="hidden" name="action" value="START" />
-
-                    <button
-                      type="submit"
-                      className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-                      Start
-                    </button>
-                  </form>
-
-                  <form action={handleInterviewAction}>
-                    <input type="hidden" name="interviewId" value={interview.id} />
-
-                    <input type="hidden" name="action" value="CANCEL" />
-
-                    <button
-                      type="submit"
-                      className="inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium text-destructive hover:bg-destructive/5">
-                      Cancel
-                    </button>
-                  </form>
-                </>
-              )}
-
-              {interview.status === 'IN_PROGRESS' && (
-                <form action={handleInterviewAction}>
-                  <input type="hidden" name="interviewId" value={interview.id} />
-
-                  <input type="hidden" name="action" value="COMPLETE" />
-
-                  <button
-                    type="submit"
-                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white hover:bg-emerald-700">
-                    Complete
-                  </button>
-                </form>
-              )}
-            </div>
-          )}
+          {showActions && <InterviewActionControls interviewId={interview.id} status={interview.status} />}
         </div>
       </div>
     </article>

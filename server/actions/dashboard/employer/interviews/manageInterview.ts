@@ -1,3 +1,4 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -9,7 +10,8 @@ type InterviewAction =
   | 'START'
   | 'COMPLETE'
   | 'CANCEL'
-  | 'NO_SHOW';
+  | 'NO_SHOW'
+  | 'RESTORE';
 
 function getNotificationForAction(
   action: InterviewAction,
@@ -43,6 +45,13 @@ function getNotificationForAction(
         message: `Your interview "${interviewTitle}" has been marked as a no-show.`,
         priority: 'HIGH' as const
       };
+
+    case 'RESTORE':
+      return {
+        title: 'Interview restored',
+        message: `Your interview "${interviewTitle}" has been restored and is scheduled again.`,
+        priority: 'HIGH' as const
+      };
   }
 }
 
@@ -70,8 +79,8 @@ export async function manageInterview(
       status: true,
       employerId: true,
       candidateId: true,
-      applicationId: true,
       scheduledAt: true,
+      cancellationReason: true,
       job: {
         select: {
           title: true
@@ -98,7 +107,10 @@ export async function manageInterview(
   const scheduledAt = new Date(interview.scheduledAt);
 
   if (action === 'START') {
-    if (interview.status !== 'SCHEDULED') {
+    if (
+      interview.status !== 'SCHEDULED' &&
+      interview.status !== 'RESCHEDULED'
+    ) {
       return {
         success: false,
         error: 'Only scheduled interviews can be started.'
@@ -108,35 +120,53 @@ export async function manageInterview(
     if (scheduledAt.getTime() > now.getTime()) {
       return {
         success: false,
-        error: 'This interview cannot be started before its scheduled time.'
+        error:
+          'This interview cannot be started before its scheduled time.'
       };
     }
   }
 
-  if (action === 'COMPLETE' && interview.status !== 'IN_PROGRESS') {
-    return {
-      success: false,
-      error: 'Only interviews currently in progress can be completed.'
-    };
-  }
-
   if (
-    action === 'CANCEL' &&
-    ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(interview.status)
+    action === 'COMPLETE' &&
+    interview.status !== 'IN_PROGRESS'
   ) {
     return {
       success: false,
-      error: 'This interview can no longer be cancelled.'
+      error:
+        'Only interviews currently in progress can be completed.'
     };
+  }
+
+  if (action === 'CANCEL') {
+    if (
+      ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(
+        interview.status
+      )
+    ) {
+      return {
+        success: false,
+        error: 'This interview can no longer be cancelled.'
+      };
+    }
+
+    if (!cancellationReason) {
+      return {
+        success: false,
+        error: 'A cancellation reason is required.'
+      };
+    }
   }
 
   if (action === 'NO_SHOW') {
     if (
-      ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(interview.status)
+      ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(
+        interview.status
+      )
     ) {
       return {
         success: false,
-        error: 'This interview cannot be marked as a no-show.'
+        error:
+          'This interview cannot be marked as a no-show.'
       };
     }
 
@@ -145,6 +175,16 @@ export async function manageInterview(
         success: false,
         error:
           'An interview cannot be marked as a no-show before its scheduled time.'
+      };
+    }
+  }
+
+  if (action === 'RESTORE') {
+    if (interview.status !== 'CANCELLED') {
+      return {
+        success: false,
+        error:
+          'Only cancelled interviews can be restored.'
       };
     }
   }
@@ -164,12 +204,19 @@ export async function manageInterview(
           ? {
               status: 'CANCELLED' as const,
               cancelledAt: now,
-              cancellationReason: cancellationReason ?? null
+              cancellationReason:
+                cancellationReason ?? null
             }
-          : {
-              status: 'NO_SHOW' as const,
-              endedAt: now
-            };
+          : action === 'RESTORE'
+            ? {
+                status: 'SCHEDULED' as const,
+                cancelledAt: null,
+                cancellationReason: null
+              }
+            : {
+                status: 'NO_SHOW' as const,
+                endedAt: now
+              };
 
   const eventType =
     action === 'START'
@@ -178,7 +225,9 @@ export async function manageInterview(
         ? 'COMPLETED'
         : action === 'CANCEL'
           ? 'CANCELLED'
-          : 'NO_SHOW';
+          : action === 'NO_SHOW'
+            ? 'NO_SHOW'
+            : 'RESTORED';
 
   const notification = getNotificationForAction(
     action,
@@ -215,13 +264,20 @@ export async function manageInterview(
     ]);
 
     revalidatePath('/dashboard/employer/interviews');
-    revalidatePath(`/dashboard/employer/interviews/${interview.id}`);
 
-    if (interview.applicationId) {
-      revalidatePath(
-        `/dashboard/employer/applications/${interview.applicationId}`
-      );
-    }
+    revalidatePath(
+      `/dashboard/employer/interviews/${interview.id}`
+    );
+
+    revalidatePath(
+      `/dashboard/employer/applications/${interview.id}`
+    );
+
+    revalidatePath('/dashboard/interviews');
+
+    revalidatePath(
+      `/dashboard/interviews/${interview.id}`
+    );
 
     return {
       success: true
@@ -231,7 +287,8 @@ export async function manageInterview(
 
     return {
       success: false,
-      error: 'Unable to update the interview. Please try again.'
+      error:
+        'Unable to update the interview. Please try again.'
     };
   }
 }
