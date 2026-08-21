@@ -33,7 +33,18 @@ export async function getEmployerInterviews() {
     orderBy: {
       scheduledAt: 'asc'
     },
-    include: {
+    select: {
+      id: true,
+      title: true,
+      type: true,
+      status: true,
+      scheduledAt: true,
+      durationMinutes: true,
+      meetingUrl: true,
+      meetingProvider: true,
+      location: true,
+      notes: true,
+
       job: {
         select: {
           id: true,
@@ -47,6 +58,7 @@ export async function getEmployerInterviews() {
           }
         }
       },
+
       candidate: {
         select: {
           id: true,
@@ -62,6 +74,7 @@ export async function getEmployerInterviews() {
           }
         }
       },
+
       application: {
         select: {
           id: true,
@@ -69,88 +82,20 @@ export async function getEmployerInterviews() {
           appliedAt: true
         }
       },
-      participants: {
-        select: {
-          id: true,
-          userId: true,
-          role: true,
-          joinedAt: true,
-          leftAt: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true
-            }
-          }
-        }
-      },
+
       tasks: {
         orderBy: {
           createdAt: 'asc'
         },
         select: {
           id: true,
-          title: true,
-          description: true,
-          status: true,
-          priority: true,
-          dueAt: true,
-          startedAt: true,
-          completedAt: true,
-          assignedToId: true
+          status: true
         }
       },
-      evaluations: {
-        orderBy: {
-          createdAt: 'desc'
-        },
-        select: {
-          id: true,
-          evaluatorId: true,
-          overallScore: true,
-          recommendation: true,
-          strengths: true,
-          weaknesses: true,
-          feedback: true,
-          createdAt: true,
-          evaluator: {
-            select: {
-              id: true,
-              name: true,
-              email: true
-            }
-          },
-          criteria: {
-            select: {
-              id: true,
-              name: true,
-              score: true,
-              feedback: true
-            }
-          }
-        }
-      },
-      events: {
-        orderBy: {
-          createdAt: 'desc'
-        },
-        take: 20,
-        select: {
-          id: true,
-          type: true,
-          actorId: true,
-          metadata: true,
-          createdAt: true
-        }
-      },
+
       _count: {
         select: {
-          tasks: true,
-          participants: true,
-          evaluations: true,
-          events: true
+          tasks: true
         }
       }
     }

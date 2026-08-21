@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import {
   ArrowLeft,
   CalendarDays,
@@ -118,7 +119,13 @@ function getInterviewTypeIcon(type: string) {
 export default async function EmployerInterviewDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const { interview } = await getEmployerInterview(id);
+  let interview;
+
+  try {
+    ({ interview } = await getEmployerInterview(id));
+  } catch {
+    notFound();
+  }
 
   const taskFormAction = async (
     _previousState: {

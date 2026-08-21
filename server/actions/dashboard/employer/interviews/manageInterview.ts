@@ -57,6 +57,7 @@ export async function manageInterview(
     typeof reason === 'string' && reason.trim()
       ? reason.trim()
       : undefined;
+
   const user = await requireAuth();
 
   const interview = await prisma.interview.findUnique({
@@ -70,7 +71,6 @@ export async function manageInterview(
       employerId: true,
       candidateId: true,
       scheduledAt: true,
-      jobId: true,
       job: {
         select: {
           title: true
@@ -93,11 +93,23 @@ export async function manageInterview(
     };
   }
 
-  if (action === 'START' && interview.status !== 'SCHEDULED') {
-    return {
-      success: false,
-      error: 'Only scheduled interviews can be started.'
-    };
+  const now = new Date();
+  const scheduledAt = new Date(interview.scheduledAt);
+
+  if (action === 'START') {
+    if (interview.status !== 'SCHEDULED') {
+      return {
+        success: false,
+        error: 'Only scheduled interviews can be started.'
+      };
+    }
+
+    if (scheduledAt.getTime() > now.getTime()) {
+      return {
+        success: false,
+        error: 'This interview cannot be started before its scheduled time.'
+      };
+    }
   }
 
   if (action === 'COMPLETE' && interview.status !== 'IN_PROGRESS') {
@@ -109,7 +121,7 @@ export async function manageInterview(
 
   if (
     action === 'CANCEL' &&
-    ['COMPLETED', 'CANCELLED'].includes(interview.status)
+    ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(interview.status)
   ) {
     return {
       success: false,
@@ -117,19 +129,25 @@ export async function manageInterview(
     };
   }
 
-  if (
-    action === 'NO_SHOW' &&
-    ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(interview.status)
-  ) {
-    return {
-      success: false,
-      error: 'This interview cannot be marked as a no-show.'
-    };
+  if (action === 'NO_SHOW') {
+    if (
+      ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(interview.status)
+    ) {
+      return {
+        success: false,
+        error: 'This interview cannot be marked as a no-show.'
+      };
+    }
+
+    if (scheduledAt.getTime() > now.getTime()) {
+      return {
+        success: false,
+        error: 'An interview cannot be marked as a no-show before its scheduled time.'
+      };
+    }
   }
 
-  const now = new Date();
-
- const updateData =
+  const updateData =
     action === 'START'
       ? {
           status: 'IN_PROGRESS' as const,
@@ -196,6 +214,9 @@ export async function manageInterview(
 
     revalidatePath('/dashboard/employer/interviews');
     revalidatePath(`/dashboard/employer/interviews/${interview.id}`);
+    revalidatePath(
+      `/dashboard/employer/applications/${interview.id}`
+    );
 
     return {
       success: true
