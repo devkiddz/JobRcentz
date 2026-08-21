@@ -70,6 +70,7 @@ export async function manageInterview(
       status: true,
       employerId: true,
       candidateId: true,
+      applicationId: true,
       scheduledAt: true,
       job: {
         select: {
@@ -142,7 +143,8 @@ export async function manageInterview(
     if (scheduledAt.getTime() > now.getTime()) {
       return {
         success: false,
-        error: 'An interview cannot be marked as a no-show before its scheduled time.'
+        error:
+          'An interview cannot be marked as a no-show before its scheduled time.'
       };
     }
   }
@@ -214,9 +216,12 @@ export async function manageInterview(
 
     revalidatePath('/dashboard/employer/interviews');
     revalidatePath(`/dashboard/employer/interviews/${interview.id}`);
-    revalidatePath(
-      `/dashboard/employer/applications/${interview.id}`
-    );
+
+    if (interview.applicationId) {
+      revalidatePath(
+        `/dashboard/employer/applications/${interview.applicationId}`
+      );
+    }
 
     return {
       success: true

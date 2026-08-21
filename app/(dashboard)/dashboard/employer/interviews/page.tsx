@@ -16,6 +16,27 @@ import {
 import { getEmployerInterviews } from '@/server/actions/dashboard/employer/interviews/getEmployerInterviews';
 import { manageInterview } from '@/server/actions/dashboard/employer/interviews/manageInterview';
 
+type InterviewAction = 'START' | 'COMPLETE' | 'CANCEL';
+
+async function handleInterviewAction(formData: FormData): Promise<void> {
+  'use server';
+
+  const interviewId = formData.get('interviewId');
+  const action = formData.get('action');
+
+  if (typeof interviewId !== 'string' || !interviewId) {
+    console.error('Interview action rejected: missing interviewId.');
+    return;
+  }
+
+  if (action !== 'START' && action !== 'COMPLETE' && action !== 'CANCEL') {
+    console.error('Interview action rejected: invalid action.');
+    return;
+  }
+
+  await manageInterview(interviewId, action, formData);
+}
+
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat('en-NG', {
     weekday: 'short',
@@ -43,20 +64,15 @@ function getStatusClasses(status: string) {
   switch (status) {
     case 'SCHEDULED':
       return 'bg-blue-500/10 text-blue-600 dark:text-blue-400';
-
     case 'RESCHEDULED':
       return 'bg-violet-500/10 text-violet-600 dark:text-violet-400';
-
     case 'IN_PROGRESS':
       return 'bg-amber-500/10 text-amber-600 dark:text-amber-400';
-
     case 'COMPLETED':
       return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
-
     case 'CANCELLED':
     case 'NO_SHOW':
       return 'bg-destructive/10 text-destructive';
-
     default:
       return 'bg-muted text-muted-foreground';
   }
@@ -93,7 +109,6 @@ function isInPersonInterview(type: InterviewCardInterview['type']) {
 
 export default async function EmployerInterviewsPage() {
   const { interviews } = await getEmployerInterviews();
-
   const now = new Date();
 
   const upcoming = interviews.filter(interview => {
@@ -247,18 +262,6 @@ function InterviewCard({
 }) {
   const inPerson = isInPersonInterview(interview.type);
 
-  async function startInterviewAction(_formData: FormData): Promise<void> {
-    await manageInterview(interview.id, 'START');
-  }
-
-  async function completeInterviewAction(_formData: FormData): Promise<void> {
-    await manageInterview(interview.id, 'COMPLETE');
-  }
-
-  async function cancelInterviewAction(formData: FormData): Promise<void> {
-    await manageInterview(interview.id, 'CANCEL', formData);
-  }
-
   return (
     <article className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <div className="border-b p-5">
@@ -388,7 +391,11 @@ function InterviewCard({
             <div className="flex flex-wrap gap-2">
               {interview.status === 'SCHEDULED' && (
                 <>
-                  <form action={startInterviewAction}>
+                  <form action={handleInterviewAction}>
+                    <input type="hidden" name="interviewId" value={interview.id} />
+
+                    <input type="hidden" name="action" value="START" />
+
                     <button
                       type="submit"
                       className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
@@ -396,7 +403,11 @@ function InterviewCard({
                     </button>
                   </form>
 
-                  <form action={cancelInterviewAction}>
+                  <form action={handleInterviewAction}>
+                    <input type="hidden" name="interviewId" value={interview.id} />
+
+                    <input type="hidden" name="action" value="CANCEL" />
+
                     <button
                       type="submit"
                       className="inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium text-destructive hover:bg-destructive/5">
@@ -407,7 +418,11 @@ function InterviewCard({
               )}
 
               {interview.status === 'IN_PROGRESS' && (
-                <form action={completeInterviewAction}>
+                <form action={handleInterviewAction}>
+                  <input type="hidden" name="interviewId" value={interview.id} />
+
+                  <input type="hidden" name="action" value="COMPLETE" />
+
                   <button
                     type="submit"
                     className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white hover:bg-emerald-700">
