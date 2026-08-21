@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CalendarDays, Loader2, MapPin, Video } from 'lucide-react';
+
 import {
   createInterview,
-  CreateInterviewInput
+  type CreateInterviewInput
 } from '@/server/actions/dashboard/employer/interviews/createInterview';
 
 type Props = {
@@ -22,6 +23,7 @@ export default function InterviewCreateForm({ applicationId, candidateName, jobT
   const router = useRouter();
 
   const [type, setType] = useState<InterviewType>('ONLINE');
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
@@ -41,7 +43,6 @@ export default function InterviewCreateForm({ applicationId, candidateName, jobT
 
   function handleTypeChange(nextType: InterviewType) {
     setType(nextType);
-
     setError('');
 
     if (nextType !== 'ONLINE') {
@@ -88,21 +89,31 @@ export default function InterviewCreateForm({ applicationId, candidateName, jobT
       return;
     }
 
+    const duration = Number(durationMinutes);
+
+    if (!Number.isInteger(duration) || duration <= 0 || duration > 480) {
+      setError('Interview duration must be between 1 and 480 minutes.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Lagos';
+
       const result = await createInterview({
         applicationId,
         type,
+
         title: title.trim() || undefined,
+
         description: description.trim() || undefined,
 
-        // Convert the browser-local datetime into an absolute timestamp.
         scheduledAt: scheduledDate.toISOString(),
 
-        durationMinutes: durationMinutes ? Number(durationMinutes) : undefined,
+        durationMinutes: duration,
 
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezone,
 
         meetingProvider: type === 'ONLINE' ? meetingProvider : undefined,
 
@@ -118,7 +129,9 @@ export default function InterviewCreateForm({ applicationId, candidateName, jobT
       });
 
       if (!result.success) {
-        throw new Error('Interview could not be created.');
+        setError(result.error);
+        setIsSubmitting(false);
+        return;
       }
 
       router.push(`/dashboard/employer/interviews/${result.interviewId}`);
@@ -197,6 +210,7 @@ export default function InterviewCreateForm({ applicationId, candidateName, jobT
               onChange={setDurationMinutes}
               placeholder="60"
               min="1"
+              max="480"
             />
           </div>
 
@@ -216,7 +230,8 @@ export default function InterviewCreateForm({ applicationId, candidateName, jobT
             </div>
 
             <p className="mt-2 text-xs text-muted-foreground">
-              Your local timezone will be used for scheduling.
+              Your browser timezone ({Intl.DateTimeFormat().resolvedOptions().timeZone || 'local time'}) will
+              be used for scheduling.
             </p>
           </div>
 
@@ -245,10 +260,14 @@ export default function InterviewCreateForm({ applicationId, candidateName, jobT
                 value={meetingProvider}
                 onChange={event => setMeetingProvider(event.target.value as MeetingProvider)}
                 className="mt-2 h-11 w-full rounded-md border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
-                <option value="INTERNAL">Internal</option>
+                <option value="INTERNAL">JobRcentz</option>
+
                 <option value="ZOOM">Zoom</option>
+
                 <option value="GOOGLE_MEET">Google Meet</option>
+
                 <option value="MICROSOFT_TEAMS">Microsoft Teams</option>
+
                 <option value="OTHER">Other</option>
               </select>
             </div>
@@ -298,6 +317,17 @@ export default function InterviewCreateForm({ applicationId, candidateName, jobT
         </section>
       )}
 
+      {type === 'AI' && (
+        <section className="rounded-2xl border border-dashed bg-muted/20 p-6 sm:p-8">
+          <h2 className="font-semibold">AI interview</h2>
+
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            AI interview infrastructure will be connected later. For now, the interview can be created and
+            managed as an AI interview record.
+          </p>
+        </section>
+      )}
+
       <section className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
         <TextareaField
           label="Internal notes"
@@ -308,7 +338,9 @@ export default function InterviewCreateForm({ applicationId, candidateName, jobT
       </section>
 
       {error && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+        <div
+          role="alert"
+          className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -342,7 +374,7 @@ export default function InterviewCreateForm({ applicationId, candidateName, jobT
       </div>
 
       <p className="text-center text-xs text-muted-foreground">
-        This interview will be attached to {jobTitle} and the candidates application.
+        This interview will be attached to {jobTitle} and the candidate&apos;s application.
       </p>
     </form>
   );
@@ -395,6 +427,7 @@ function Field({
   placeholder,
   type = 'text',
   min,
+  max,
   required = false
 }: {
   label: string;
@@ -403,6 +436,7 @@ function Field({
   placeholder?: string;
   type?: string;
   min?: string;
+  max?: string;
   required?: boolean;
 }) {
   return (
@@ -415,6 +449,7 @@ function Field({
         onChange={event => onChange(event.target.value)}
         placeholder={placeholder}
         min={min}
+        max={max}
         required={required}
         className="mt-2 h-11 w-full rounded-md border bg-background px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
       />
