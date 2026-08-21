@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, BriefcaseBusiness, CalendarDays, MapPin, UserRound, Video } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
 
 import { getEmployerApplicationById } from '@/server/actions/dashboard/employer/applications/getEmployerApplicationById';
 import InterviewCreateForm from './InterviewCreateForm';
+import CandidateDetails, { CandidateDetailsMobileTrigger } from './CandidateDetails';
 
 export default async function CreateInterviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,63 +25,63 @@ export default async function CreateInterviewPage({ params }: { params: Promise<
 
   const profileImage = application.jobSeekerProfile.profilePhotoUrl ?? application.applicant.image;
 
+  const location = application.job.location ?? 'Location not specified';
+
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-8 p-4 sm:p-6 lg:p-8">
-      <Link
-        href={`/dashboard/employer/applications/${application.id}`}
-        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-        <ArrowLeft className="size-4" />
-        Back to Application
-      </Link>
+    <main className="min-h-full bg-muted/20">
+      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+        {/* Back */}
+        <Link
+          href={`/dashboard/employer/applications/${application.id}`}
+          className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:mb-8">
+          <ArrowLeft className="size-4" />
+          Back to Application
+        </Link>
 
-      <section className="rounded-2xl border bg-card shadow-sm">
-        <div className="flex flex-col gap-5 p-6 sm:p-8">
-          <div className="flex items-start gap-4">
-            <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted">
-              {profileImage ? (
-                <img src={profileImage} alt={candidateName} className="size-full object-cover" />
-              ) : (
-                <UserRound className="size-6 text-muted-foreground" />
-              )}
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-                Interview scheduling
-              </p>
-
-              <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Schedule Interview</h1>
-
-              <p className="mt-2 text-sm text-muted-foreground">
-                Schedule an interview with {candidateName}.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-3 border-t pt-5 sm:grid-cols-3">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <UserRound className="size-4 text-primary" />
-              <span className="truncate">{candidateName}</span>
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <BriefcaseBusiness className="size-4 text-primary" />
-              <span className="truncate">{application.job.title}</span>
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="size-4 text-primary" />
-              <span className="truncate">{application.job.location ?? 'Location not specified'}</span>
-            </div>
-          </div>
+        {/* Mobile candidate sheet */}
+        <div className="mb-5 lg:hidden">
+          <CandidateDetailsMobileTrigger
+            candidateName={candidateName}
+            profileImage={profileImage}
+            jobTitle={application.job.title}
+            location={location}
+          />
         </div>
-      </section>
 
-      <InterviewCreateForm
-        applicationId={application.id}
-        candidateName={candidateName}
-        jobTitle={application.job.title}
-      />
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_350px]">
+          {/* Main content */}
+          <section className="min-w-0">
+            <div className="mb-6 sm:mb-8">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+                <FileText className="size-3.5" />
+                Interview scheduling
+              </div>
+
+              <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Schedule Interview</h1>
+
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                Set up the next step with <span className="font-medium text-foreground">{candidateName}</span>{' '}
+                for the <span className="font-medium text-foreground">{application.job.title}</span> position.
+              </p>
+            </div>
+
+            <InterviewCreateForm applicationId={application.id} />
+          </section>
+
+          {/* Desktop candidate sidebar */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-6">
+              <CandidateDetails
+                candidateName={candidateName}
+                profileImage={profileImage}
+                jobTitle={application.job.title}
+                location={location}
+                applicationId={application.id}
+              />
+            </div>
+          </aside>
+        </div>
+      </div>
     </main>
   );
 }

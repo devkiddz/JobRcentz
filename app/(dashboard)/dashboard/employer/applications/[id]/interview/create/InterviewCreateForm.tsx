@@ -1,484 +1,652 @@
 'use client';
 
-import { useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CalendarDays, Loader2, MapPin, Video } from 'lucide-react';
+import {
+  CalendarDays,
+  Check,
+  Clock3,
+  ExternalLink,
+  Loader2,
+  MapPin,
+  MonitorPlay,
+  Sparkles,
+  Video,
+  Users,
+  FileText
+} from 'lucide-react';
 
 import {
   createInterview,
-  type CreateInterviewInput
+  type CreateInterviewInput,
+  type CreateInterviewResult
 } from '@/server/actions/dashboard/employer/interviews/createInterview';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 
 type Props = {
   applicationId: string;
-  candidateName: string;
-  jobTitle: string;
 };
 
-type InterviewType = CreateInterviewInput['type'];
+const initialState: CreateInterviewResult = {
+  success: false,
+  error: ''
+};
 
-type MeetingProvider = NonNullable<CreateInterviewInput['meetingProvider']>;
+type InterviewType = 'ONLINE' | 'IN_PERSON' | 'AI';
 
-export default function InterviewCreateForm({ applicationId, candidateName, jobTitle }: Props) {
+type Provider = 'INTERNAL' | 'ZOOM' | 'GOOGLE_MEET' | 'MICROSOFT_TEAMS' | 'OTHER';
+
+async function createInterviewAction(
+  _previousState: CreateInterviewResult,
+  formData: FormData
+): Promise<CreateInterviewResult> {
+  const input: CreateInterviewInput = {
+    applicationId: String(formData.get('applicationId') ?? ''),
+    title: String(formData.get('title') ?? ''),
+    type: String(formData.get('type') ?? 'ONLINE') as CreateInterviewInput['type'],
+    scheduledAt: String(formData.get('scheduledAt') ?? ''),
+    timezone: String(formData.get('timezone') ?? 'Africa/Lagos'),
+    durationMinutes: Number(formData.get('durationMinutes') ?? 60),
+    meetingProvider: String(
+      formData.get('meetingProvider') ?? 'INTERNAL'
+    ) as CreateInterviewInput['meetingProvider'],
+    meetingUrl: String(formData.get('meetingUrl') ?? ''),
+    meetingId: String(formData.get('meetingId') ?? ''),
+    meetingPasscode: String(formData.get('meetingPasscode') ?? ''),
+    location: String(formData.get('location') ?? ''),
+    description: String(formData.get('description') ?? '')
+  };
+
+  return createInterview(input);
+}
+
+const interviewTypes = [
+  {
+    value: 'ONLINE' as const,
+    title: 'Online',
+    description: 'Meet through video',
+    icon: Video
+  },
+  {
+    value: 'IN_PERSON' as const,
+    title: 'In person',
+    description: 'Meet at a physical location',
+    icon: MapPin
+  },
+  {
+    value: 'AI' as const,
+    title: 'AI interview',
+    description: 'Automated interview experience',
+    icon: Sparkles
+  }
+];
+
+const providers = [
+  {
+    value: 'INTERNAL',
+    label: 'Rcentz'
+  },
+  {
+    value: 'GOOGLE_MEET',
+    label: 'Google Meet'
+  },
+  {
+    value: 'ZOOM',
+    label: 'Zoom'
+  },
+  {
+    value: 'MICROSOFT_TEAMS',
+    label: 'Teams'
+  },
+  {
+    value: 'OTHER',
+    label: 'Other'
+  }
+];
+
+export default function CreateInterviewForm({ applicationId }: Props) {
   const router = useRouter();
+
+  const [state, formAction, isPending] = useActionState(createInterviewAction, initialState);
 
   const [type, setType] = useState<InterviewType>('ONLINE');
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [scheduledAt, setScheduledAt] = useState('');
-  const [durationMinutes, setDurationMinutes] = useState('60');
+  const [provider, setProvider] = useState<Provider>('INTERNAL');
 
-  const [meetingProvider, setMeetingProvider] = useState<MeetingProvider>('INTERNAL');
-
-  const [meetingUrl, setMeetingUrl] = useState('');
-  const [meetingId, setMeetingId] = useState('');
-  const [meetingPasscode, setMeetingPasscode] = useState('');
-
-  const [location, setLocation] = useState('');
-  const [notes, setNotes] = useState('');
-
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  function handleTypeChange(nextType: InterviewType) {
-    setType(nextType);
-    setError('');
-
-    if (nextType !== 'ONLINE') {
-      setMeetingProvider('INTERNAL');
-      setMeetingUrl('');
-      setMeetingId('');
-      setMeetingPasscode('');
+  useEffect(() => {
+    if (state.success && state.interviewId) {
+      router.push(`/dashboard/employer/interviews/${state.interviewId}`);
     }
-
-    if (nextType !== 'IN_PERSON') {
-      setLocation('');
-    }
-  }
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    setError('');
-
-    if (!scheduledAt) {
-      setError('Please select an interview date and time.');
-      return;
-    }
-
-    if (type === 'IN_PERSON' && !location.trim()) {
-      setError('Please provide the interview location.');
-      return;
-    }
-
-    if (type === 'ONLINE' && meetingProvider !== 'INTERNAL' && !meetingUrl.trim()) {
-      setError('Please provide the meeting URL.');
-      return;
-    }
-
-    const scheduledDate = new Date(scheduledAt);
-
-    if (Number.isNaN(scheduledDate.getTime())) {
-      setError('The selected interview date and time is invalid.');
-      return;
-    }
-
-    if (scheduledDate.getTime() <= Date.now()) {
-      setError('The interview must be scheduled for a future date and time.');
-      return;
-    }
-
-    const duration = Number(durationMinutes);
-
-    if (!Number.isInteger(duration) || duration <= 0 || duration > 480) {
-      setError('Interview duration must be between 1 and 480 minutes.');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Lagos';
-
-      const result = await createInterview({
-        applicationId,
-        type,
-
-        title: title.trim() || undefined,
-
-        description: description.trim() || undefined,
-
-        scheduledAt: scheduledDate.toISOString(),
-
-        durationMinutes: duration,
-
-        timezone,
-
-        meetingProvider: type === 'ONLINE' ? meetingProvider : undefined,
-
-        meetingUrl: type === 'ONLINE' ? meetingUrl.trim() || undefined : undefined,
-
-        meetingId: type === 'ONLINE' ? meetingId.trim() || undefined : undefined,
-
-        meetingPasscode: type === 'ONLINE' ? meetingPasscode.trim() || undefined : undefined,
-
-        location: type === 'IN_PERSON' ? location.trim() || undefined : undefined,
-
-        notes: notes.trim() || undefined
-      });
-
-      if (!result.success) {
-        setError(result.error);
-        setIsSubmitting(false);
-        return;
-      }
-
-      router.push(`/dashboard/employer/interviews/${result.interviewId}`);
-
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong while scheduling the interview.');
-
-      setIsSubmitting(false);
-    }
-  }
+  }, [state, router]);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <section className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
-        <div className="flex items-start gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-            <Video className="size-5 text-primary" />
+    <form action={formAction} className="mx-auto w-full max-w-5xl pb-24">
+      <input type="hidden" name="applicationId" value={applicationId} />
+
+      <input type="hidden" name="type" value={type} />
+
+      <input type="hidden" name="meetingProvider" value={provider} />
+
+      <div className="space-y-6">
+        {/* -------------------------------------------------
+            STEP / OVERVIEW
+        ------------------------------------------------- */}
+        <div className="rounded-2xl border bg-card shadow-sm">
+          <div className="flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <CalendarDays className="size-5" />
+              </div>
+
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-semibold tracking-tight">Interview setup</h2>
+
+                  <Badge variant="secondary" className="gap-1.5">
+                    <span className="size-1.5 rounded-full bg-emerald-500" />
+                    New interview
+                  </Badge>
+                </div>
+
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+                  Configure the interview format, schedule, meeting details and candidate instructions.
+                </p>
+              </div>
+            </div>
+
+            <div className="hidden items-center gap-2 text-xs text-muted-foreground lg:flex">
+              <Users className="size-4" />
+              Candidate interview
+            </div>
           </div>
 
-          <div>
-            <h2 className="font-semibold">Interview details</h2>
+          <Separator />
 
-            <p className="mt-1 text-sm text-muted-foreground">
-              Configure how and when the interview will take place.
-            </p>
+          <div className="grid divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <div className="flex items-center gap-3 px-5 py-4">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-muted">
+                <Video className="size-4 text-muted-foreground" />
+              </div>
+
+              <div>
+                <p className="text-xs text-muted-foreground">Format</p>
+
+                <p className="text-sm font-medium">
+                  {type === 'ONLINE' ? 'Online' : type === 'IN_PERSON' ? 'In person' : 'AI interview'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 px-5 py-4">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-muted">
+                <Clock3 className="size-4 text-muted-foreground" />
+              </div>
+
+              <div>
+                <p className="text-xs text-muted-foreground">Duration</p>
+
+                <p className="text-sm font-medium">60 minutes</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 px-5 py-4">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-muted">
+                <CalendarDays className="size-4 text-muted-foreground" />
+              </div>
+
+              <div>
+                <p className="text-xs text-muted-foreground">Timezone</p>
+
+                <p className="text-sm font-medium">Africa/Lagos</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="mt-8 space-y-6">
-          <div>
-            <label className="text-sm font-medium">Interview type</label>
+        {/* -------------------------------------------------
+            INTERVIEW FORMAT
+        ------------------------------------------------- */}
+        <Card className="overflow-hidden shadow-sm">
+          <CardHeader className="border-b bg-muted/20 px-5 py-5 sm:px-6">
+            <div className="flex items-start gap-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <MonitorPlay className="size-4" />
+              </div>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
-              <TypeOption
-                value="ONLINE"
-                current={type}
-                icon={<Video className="size-4" />}
-                title="Online"
-                description="Video or virtual meeting"
-                onChange={handleTypeChange}
+              <div>
+                <CardTitle className="text-base">Interview format</CardTitle>
+
+                <CardDescription className="mt-1">Choose how you want to meet the candidate.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-6 p-5 sm:p-6">
+            <RadioGroup
+              value={type}
+              onValueChange={value => setType(value as InterviewType)}
+              className="grid gap-3 md:grid-cols-3">
+              {interviewTypes.map(item => {
+                const Icon = item.icon;
+                const selected = type === item.value;
+
+                return (
+                  <Label
+                    key={item.value}
+                    htmlFor={`interview-type-${item.value}`}
+                    className={[
+                      'relative flex min-h-[116px] cursor-pointer items-start gap-3 rounded-xl border p-4',
+                      'transition-all duration-200',
+                      'hover:border-primary/40 hover:bg-muted/30',
+                      selected
+                        ? 'border-primary bg-primary/[0.045] shadow-sm ring-1 ring-primary/20'
+                        : 'border-border'
+                    ].join(' ')}>
+                    <RadioGroupItem
+                      id={`interview-type-${item.value}`}
+                      value={item.value}
+                      className="sr-only"
+                    />
+
+                    <div
+                      className={[
+                        'flex size-10 shrink-0 items-center justify-center rounded-lg',
+                        selected ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                      ].join(' ')}>
+                      <Icon className="size-5" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start gap-2">
+                        <div>
+                          <p className="text-sm font-semibold">{item.title}</p>
+
+                          <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.description}</p>
+                        </div>
+
+                        {selected && (
+                          <span className="ml-auto flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                            <Check className="size-3" />
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Label>
+                );
+              })}
+            </RadioGroup>
+
+            <Separator />
+
+            <div className="grid gap-2">
+              <Label htmlFor="title">Interview title</Label>
+
+              <Input
+                id="title"
+                name="title"
+                placeholder="e.g. Frontend Developer Interview"
+                className="h-11"
               />
 
-              <TypeOption
-                value="IN_PERSON"
-                current={type}
-                icon={<MapPin className="size-4" />}
-                title="In person"
-                description="Physical interview"
-                onChange={handleTypeChange}
-              />
+              <p className="text-xs leading-5 text-muted-foreground">
+                Leave blank and Rcentz will generate an appropriate title automatically.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
-              <TypeOption
-                value="AI"
-                current={type}
-                icon={<Video className="size-4" />}
-                title="AI interview"
-                description="AI-assisted interview"
-                onChange={handleTypeChange}
-              />
+        {/* -------------------------------------------------
+            SCHEDULE
+        ------------------------------------------------- */}
+        <Card className="shadow-sm">
+          <CardHeader className="border-b bg-muted/20 px-5 py-5 sm:px-6">
+            <div className="flex items-start gap-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <CalendarDays className="size-4" />
+              </div>
+
+              <div>
+                <CardTitle className="text-base">Schedule</CardTitle>
+
+                <CardDescription className="mt-1">Choose when the candidate should attend.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-6 p-5 sm:p-6">
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="scheduledAt">Date and time</Label>
+
+                <div className="relative">
+                  <CalendarDays className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+
+                  <Input
+                    id="scheduledAt"
+                    name="scheduledAt"
+                    type="datetime-local"
+                    required
+                    className="h-11 pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="durationMinutes">Duration</Label>
+
+                <Select name="durationMinutes" defaultValue="60">
+                  <SelectTrigger id="durationMinutes" className="h-11">
+                    <div className="flex items-center gap-2">
+                      <Clock3 className="size-4 text-muted-foreground" />
+
+                      <SelectValue placeholder="Select duration" />
+                    </div>
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectItem value="15">15 minutes</SelectItem>
+
+                    <SelectItem value="30">30 minutes</SelectItem>
+
+                    <SelectItem value="45">45 minutes</SelectItem>
+
+                    <SelectItem value="60">60 minutes</SelectItem>
+
+                    <SelectItem value="90">90 minutes</SelectItem>
+
+                    <SelectItem value="120">2 hours</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="timezone">Timezone</Label>
+
+              <Select name="timezone" defaultValue="Africa/Lagos">
+                <SelectTrigger id="timezone" className="h-11">
+                  <SelectValue />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="Africa/Lagos">Africa/Lagos — WAT</SelectItem>
+
+                  <SelectItem value="Africa/Accra">Africa/Accra — GMT</SelectItem>
+
+                  <SelectItem value="Europe/London">Europe/London</SelectItem>
+
+                  <SelectItem value="Europe/Berlin">Europe/Berlin</SelectItem>
+
+                  <SelectItem value="America/New_York">America/New_York</SelectItem>
+
+                  <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="rounded-xl border bg-muted/30 p-4">
+              <div className="flex gap-3">
+                <CalendarDays className="mt-0.5 size-4 shrink-0 text-primary" />
+
+                <div>
+                  <p className="text-sm font-medium">Scheduling tip</p>
+
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Make sure the selected time gives the candidate enough notice and matches the selected
+                    timezone.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* -------------------------------------------------
+            ONLINE MEETING
+        ------------------------------------------------- */}
+        {type === 'ONLINE' && (
+          <Card className="shadow-sm">
+            <CardHeader className="border-b bg-muted/20 px-5 py-5 sm:px-6">
+              <div className="flex items-start gap-3">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <MonitorPlay className="size-4" />
+                </div>
+
+                <div>
+                  <CardTitle className="text-base">Online meeting</CardTitle>
+
+                  <CardDescription className="mt-1">Configure how the candidate will join.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-6 p-5 sm:p-6">
+              <div className="space-y-3">
+                <Label>Meeting provider</Label>
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                  {providers.map(item => {
+                    const selected = provider === item.value;
+
+                    return (
+                      <Button
+                        key={item.value}
+                        type="button"
+                        variant={selected ? 'default' : 'outline'}
+                        className="h-10 text-xs sm:text-sm"
+                        onClick={() => setProvider(item.value as Provider)}>
+                        {item.label}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label htmlFor="meetingUrl">
+                  Meeting URL
+                  {provider !== 'INTERNAL' && <span className="ml-1 text-destructive">*</span>}
+                </Label>
+
+                <div className="relative">
+                  <ExternalLink className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+
+                  <Input
+                    id="meetingUrl"
+                    name="meetingUrl"
+                    type="url"
+                    required={provider !== 'INTERNAL'}
+                    disabled={provider === 'INTERNAL'}
+                    placeholder={
+                      provider === 'INTERNAL' ? 'Generated automatically by Rcentz' : 'https://...'
+                    }
+                    className="h-11 pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="meetingId">Meeting ID</Label>
+
+                  <Input id="meetingId" name="meetingId" placeholder="Optional" className="h-11" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="meetingPasscode">Passcode</Label>
+
+                  <Input
+                    id="meetingPasscode"
+                    name="meetingPasscode"
+                    placeholder="Optional"
+                    className="h-11"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* -------------------------------------------------
+            IN PERSON
+        ------------------------------------------------- */}
+        {type === 'IN_PERSON' && (
+          <Card className="shadow-sm">
+            <CardHeader className="border-b bg-muted/20 px-5 py-5 sm:px-6">
+              <div className="flex items-start gap-3">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <MapPin className="size-4" />
+                </div>
+
+                <div>
+                  <CardTitle className="text-base">Interview location</CardTitle>
+
+                  <CardDescription className="mt-1">Tell the candidate where to attend.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-5 sm:p-6">
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+
+                <div className="relative">
+                  <MapPin className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+
+                  <Input
+                    id="location"
+                    name="location"
+                    required
+                    placeholder="e.g. 12 Airport Road, Warri"
+                    className="h-11 pl-10"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* -------------------------------------------------
+            AI INTERVIEW
+        ------------------------------------------------- */}
+        {type === 'AI' && (
+          <Card className="border-primary/20 bg-primary/[0.025] shadow-sm">
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex gap-4">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Sparkles className="size-5" />
+                </div>
+
+                <div className="min-w-0 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-semibold">AI interview</h3>
+
+                    <Badge variant="secondary">Coming later</Badge>
+                  </div>
+
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    AI interview infrastructure is part of the Rcentz platform architecture. The actual AI
+                    interview experience will be connected in a later development phase.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* -------------------------------------------------
+            ADDITIONAL INFORMATION
+        ------------------------------------------------- */}
+        <Card className="shadow-sm">
+          <CardHeader className="border-b bg-muted/20 px-5 py-5 sm:px-6">
+            <div className="flex items-start gap-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <FileText className="size-4" />
+              </div>
+
+              <div>
+                <CardTitle className="text-base">Additional information</CardTitle>
+
+                <CardDescription className="mt-1">
+                  Give the candidate useful context before the interview.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-5 sm:p-6">
+            <Textarea
+              name="description"
+              rows={6}
+              placeholder="Interview agenda, preparation instructions, topics to discuss..."
+              className="min-h-32 resize-none"
+            />
+          </CardContent>
+        </Card>
+
+        {/* -------------------------------------------------
+            ERROR
+        ------------------------------------------------- */}
+        {!state.success && state.error && (
+          <Alert variant="destructive">
+            <AlertDescription>{state.error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* -------------------------------------------------
+            ACTION BAR
+        ------------------------------------------------- */}
+        <div className="sticky bottom-3 z-20">
+          <div className="rounded-2xl border bg-background/95 p-3 shadow-xl backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="hidden min-w-0 sm:block">
+                <p className="text-sm font-medium">Ready to schedule?</p>
+
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  The interview details will be saved to this application.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:flex">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isPending}
+                  onClick={() => router.push(`/dashboard/employer/applications/${applicationId}`)}
+                  className="w-full sm:w-auto">
+                  Cancel
+                </Button>
+
+                <Button type="submit" disabled={isPending} className="w-full gap-2 sm:w-auto">
+                  {isPending ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Scheduling...
+                    </>
+                  ) : (
+                    <>
+                      <CalendarDays className="size-4" />
+                      Schedule interview
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Field
-              label="Interview title"
-              value={title}
-              onChange={setTitle}
-              placeholder={`Interview with ${candidateName}`}
-            />
-
-            <Field
-              label="Duration"
-              type="number"
-              value={durationMinutes}
-              onChange={setDurationMinutes}
-              placeholder="60"
-              min="1"
-              max="480"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium">Date and time</label>
-
-            <div className="relative mt-2">
-              <CalendarDays className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-
-              <input
-                type="datetime-local"
-                value={scheduledAt}
-                onChange={event => setScheduledAt(event.target.value)}
-                className="h-11 w-full rounded-md border bg-background pl-10 pr-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
-                required
-              />
-            </div>
-
-            <p className="mt-2 text-xs text-muted-foreground">
-              Your browser timezone ({Intl.DateTimeFormat().resolvedOptions().timeZone || 'local time'}) will
-              be used for scheduling.
-            </p>
-          </div>
-
-          <TextareaField
-            label="Description"
-            value={description}
-            onChange={setDescription}
-            placeholder="What should the candidate expect from this interview?"
-          />
         </div>
-      </section>
-
-      {type === 'ONLINE' && (
-        <section className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
-          <h2 className="font-semibold">Online meeting</h2>
-
-          <p className="mt-1 text-sm text-muted-foreground">
-            Add the details the candidate will use to join.
-          </p>
-
-          <div className="mt-6 space-y-5">
-            <div>
-              <label className="text-sm font-medium">Meeting provider</label>
-
-              <select
-                value={meetingProvider}
-                onChange={event => setMeetingProvider(event.target.value as MeetingProvider)}
-                className="mt-2 h-11 w-full rounded-md border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
-                <option value="INTERNAL">JobRcentz</option>
-
-                <option value="ZOOM">Zoom</option>
-
-                <option value="GOOGLE_MEET">Google Meet</option>
-
-                <option value="MICROSOFT_TEAMS">Microsoft Teams</option>
-
-                <option value="OTHER">Other</option>
-              </select>
-            </div>
-
-            {meetingProvider !== 'INTERNAL' && (
-              <Field
-                label="Meeting URL"
-                value={meetingUrl}
-                onChange={setMeetingUrl}
-                placeholder="https://..."
-                type="url"
-                required
-              />
-            )}
-
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Meeting ID" value={meetingId} onChange={setMeetingId} placeholder="Optional" />
-
-              <Field
-                label="Passcode"
-                value={meetingPasscode}
-                onChange={setMeetingPasscode}
-                placeholder="Optional"
-              />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {type === 'IN_PERSON' && (
-        <section className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
-          <h2 className="font-semibold">Interview location</h2>
-
-          <p className="mt-1 text-sm text-muted-foreground">
-            Tell the candidate where the interview will take place.
-          </p>
-
-          <div className="mt-6">
-            <Field
-              label="Location"
-              value={location}
-              onChange={setLocation}
-              placeholder="e.g. 14 Marina Road, Lagos"
-              required
-            />
-          </div>
-        </section>
-      )}
-
-      {type === 'AI' && (
-        <section className="rounded-2xl border border-dashed bg-muted/20 p-6 sm:p-8">
-          <h2 className="font-semibold">AI interview</h2>
-
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            AI interview infrastructure will be connected later. For now, the interview can be created and
-            managed as an AI interview record.
-          </p>
-        </section>
-      )}
-
-      <section className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
-        <TextareaField
-          label="Internal notes"
-          value={notes}
-          onChange={setNotes}
-          placeholder="Optional notes for the hiring team."
-        />
-      </section>
-
-      {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <button
-          type="button"
-          onClick={() => router.push(`/dashboard/employer/applications/${applicationId}`)}
-          disabled={isSubmitting}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-md border px-5 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50">
-          <ArrowLeft className="size-4" />
-          Cancel
-        </button>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50">
-          {isSubmitting ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              Scheduling...
-            </>
-          ) : (
-            <>
-              <CalendarDays className="size-4" />
-              Schedule Interview
-            </>
-          )}
-        </button>
       </div>
-
-      <p className="text-center text-xs text-muted-foreground">
-        This interview will be attached to {jobTitle} and the candidate&apos;s application.
-      </p>
     </form>
-  );
-}
-
-function TypeOption({
-  value,
-  current,
-  icon,
-  title,
-  description,
-  onChange
-}: {
-  value: InterviewType;
-  current: InterviewType;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  onChange: (value: InterviewType) => void;
-}) {
-  const active = current === value;
-
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(value)}
-      className={`rounded-xl border p-4 text-left transition-colors ${
-        active ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted/50'
-      }`}>
-      <div className="flex items-center gap-2">
-        <div
-          className={`flex size-8 items-center justify-center rounded-lg ${
-            active ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
-          }`}>
-          {icon}
-        </div>
-
-        <span className="text-sm font-semibold">{title}</span>
-      </div>
-
-      <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p>
-    </button>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = 'text',
-  min,
-  max,
-  required = false
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  type?: string;
-  min?: string;
-  max?: string;
-  required?: boolean;
-}) {
-  return (
-    <div>
-      <label className="text-sm font-medium">{label}</label>
-
-      <input
-        type={type}
-        value={value}
-        onChange={event => onChange(event.target.value)}
-        placeholder={placeholder}
-        min={min}
-        max={max}
-        required={required}
-        className="mt-2 h-11 w-full rounded-md border bg-background px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
-      />
-    </div>
-  );
-}
-
-function TextareaField({
-  label,
-  value,
-  onChange,
-  placeholder
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <div>
-      <label className="text-sm font-medium">{label}</label>
-
-      <textarea
-        value={value}
-        onChange={event => onChange(event.target.value)}
-        placeholder={placeholder}
-        rows={5}
-        className="mt-2 w-full resize-y rounded-md border bg-background px-3 py-3 text-sm leading-6 outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
-      />
-    </div>
   );
 }
