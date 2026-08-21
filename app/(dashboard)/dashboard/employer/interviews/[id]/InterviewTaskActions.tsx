@@ -1,7 +1,10 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
+import { Check, CirclePlay, Loader2, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
+import { Button } from '@/components/ui/button';
 import { manageInterviewTask } from '@/server/actions/dashboard/employer/interviews/manageInterviewTask';
 
 type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
@@ -12,15 +15,23 @@ type InterviewTaskActionsProps = {
 };
 
 export default function InterviewTaskActions({ taskId, status }: InterviewTaskActionsProps) {
+  const router = useRouter();
+
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   function handleAction(action: 'START' | 'COMPLETE' | 'CANCEL') {
+    setError(null);
+
     startTransition(async () => {
       const result = await manageInterviewTask(taskId, action);
 
       if (!result.success) {
-        window.alert(result.error);
+        setError(result.error);
+        return;
       }
+
+      router.refresh();
     });
   }
 
@@ -29,34 +40,49 @@ export default function InterviewTaskActions({ taskId, status }: InterviewTaskAc
   }
 
   return (
-    <div className="flex items-center gap-2">
-      {status === 'TODO' && (
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => handleAction('START')}
-          className="inline-flex h-8 items-center rounded-lg bg-primary px-2.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-          {pending ? '...' : 'Start'}
-        </button>
-      )}
+    <div className="flex min-w-0 flex-col items-stretch gap-2 sm:items-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {status === 'TODO' && (
+          <Button
+            type="button"
+            size="sm"
+            disabled={pending}
+            onClick={() => handleAction('START')}
+            className="h-8 gap-1.5 px-2.5 text-xs">
+            {pending ? <Loader2 className="size-3.5 animate-spin" /> : <CirclePlay className="size-3.5" />}
+            Start
+          </Button>
+        )}
 
-      {status === 'IN_PROGRESS' && (
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => handleAction('COMPLETE')}
-          className="inline-flex h-8 items-center rounded-lg bg-emerald-600 px-2.5 text-[11px] font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
-          {pending ? '...' : 'Complete'}
-        </button>
-      )}
+        {status === 'IN_PROGRESS' && (
+          <Button
+            type="button"
+            size="sm"
+            disabled={pending}
+            onClick={() => handleAction('COMPLETE')}
+            className="h-8 gap-1.5 px-2.5 text-xs">
+            {pending ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+            Complete
+          </Button>
+        )}
 
-      <button
-        type="button"
-        disabled={pending}
-        onClick={() => handleAction('CANCEL')}
-        className="inline-flex h-8 items-center rounded-lg border px-2.5 text-[11px] font-medium text-destructive hover:bg-destructive/5 disabled:opacity-50">
-        Cancel
-      </button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={pending}
+          onClick={() => handleAction('CANCEL')}
+          className="h-8 gap-1.5 px-2.5 text-xs text-destructive hover:text-destructive">
+          {pending ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />}
+          Cancel
+        </Button>
+      </div>
+
+      {error && (
+        <p role="alert" className="max-w-[220px] text-right text-[11px] leading-4 text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
