@@ -10,7 +10,8 @@ import {
   Globe,
   Mail,
   MapPin,
-  UserRound
+  UserRound,
+  Video
 } from 'lucide-react';
 
 import { getEmployerApplicationById } from '@/server/actions/dashboard/employer/applications/getEmployerApplicationById';
@@ -264,6 +265,30 @@ export default async function EmployerApplicationDetailPage({ params }: { params
               <Mail className="size-4" />
               {application.applicant.email}
             </a>
+          </section>
+
+          {/* Interview */}
+          <section className="rounded-2xl border bg-card p-6">
+            <div className="flex items-start gap-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <Video className="size-4 text-primary" />
+              </div>
+
+              <div>
+                <h2 className="font-semibold">Interview</h2>
+
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Schedule an interview with this candidate.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href={`/dashboard/employer/applications/${application.id}/interview/create`}
+              className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+              <Video className="size-4" />
+              Schedule Interview
+            </Link>
           </section>
         </aside>
       </section>
