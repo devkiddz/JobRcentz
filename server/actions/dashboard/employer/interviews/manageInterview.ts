@@ -1,4 +1,3 @@
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -6,289 +5,385 @@ import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/server/auth/requireAuth';
 import { prisma } from '@/server/db/prisma';
 
-type InterviewAction =
-  | 'START'
-  | 'COMPLETE'
-  | 'CANCEL'
-  | 'NO_SHOW'
-  | 'RESTORE';
+export type TaskAction = 'START' | 'COMPLETE' | 'CANCEL';
 
-function getNotificationForAction(
-  action: InterviewAction,
-  interviewTitle: string
-) {
+export type TaskResult =
+  | {
+      success: true;
+      taskId: string;
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
+type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+function getNotificationPriority(priority: TaskPriority): 'NORMAL' | 'HIGH' | 'URGENT' {
+  switch (priority) {
+    case 'URGENT':
+      return 'URGENT';
+
+    case 'HIGH':
+      return 'HIGH';
+
+    default:
+      return 'NORMAL';
+  }
+}
+
+function getTaskNotification(action: TaskAction, taskTitle: string) {
   switch (action) {
     case 'START':
       return {
-        title: 'Interview started',
-        message: `Your interview "${interviewTitle}" has been started.`,
-        priority: 'HIGH' as const
+        title: 'Interview task started',
+        message: `The interview task "${taskTitle}" has been started.`,
+        priority: 'NORMAL' as const
       };
 
     case 'COMPLETE':
       return {
-        title: 'Interview completed',
-        message: `Your interview "${interviewTitle}" has been marked as completed.`,
+        title: 'Interview task completed',
+        message: `The interview task "${taskTitle}" has been completed.`,
         priority: 'NORMAL' as const
       };
 
     case 'CANCEL':
       return {
-        title: 'Interview cancelled',
-        message: `Your interview "${interviewTitle}" has been cancelled.`,
-        priority: 'HIGH' as const
-      };
-
-    case 'NO_SHOW':
-      return {
-        title: 'Interview marked as no-show',
-        message: `Your interview "${interviewTitle}" has been marked as a no-show.`,
-        priority: 'HIGH' as const
-      };
-
-    case 'RESTORE':
-      return {
-        title: 'Interview restored',
-        message: `Your interview "${interviewTitle}" has been restored and is scheduled again.`,
+        title: 'Interview task cancelled',
+        message: `The interview task "${taskTitle}" has been cancelled.`,
         priority: 'HIGH' as const
       };
   }
 }
 
-export async function manageInterview(
-  interviewId: string,
-  action: InterviewAction,
-  formData?: FormData
-) {
-  const reason = formData?.get('reason');
+function getNotificationRecipient({
+  actorId,
+  assignedToId,
+  employerId,
+  candidateId
+}: {
+  actorId: string;
+  assignedToId: string | null;
+  employerId: string;
+  candidateId: string;
+}) {
+  if (assignedToId && assignedToId !== actorId) {
+    return assignedToId;
+  }
 
-  const cancellationReason =
-    typeof reason === 'string' && reason.trim()
-      ? reason.trim()
-      : undefined;
+  if (candidateId !== actorId) {
+    return candidateId;
+  }
 
-  const user = await requireAuth();
+  if (employerId !== actorId) {
+    return employerId;
+  }
 
-  const interview = await prisma.interview.findUnique({
+  return null;
+}
+
+async function getEmployerInterview(interviewId: string, userId: string) {
+  return prisma.interview.findFirst({
     where: {
-      id: interviewId
+      id: interviewId,
+      employerId: userId
     },
     select: {
       id: true,
-      title: true,
-      status: true,
       employerId: true,
-      candidateId: true,
-      scheduledAt: true,
-      cancellationReason: true,
-      job: {
-        select: {
-          title: true
-        }
-      }
+      candidateId: true
     }
   });
+}
 
-  if (!interview) {
-    return {
-      success: false,
-      error: 'Interview not found.'
-    };
-  }
-
-  if (interview.employerId !== user.id) {
-    return {
-      success: false,
-      error: 'You are not authorized to manage this interview.'
-    };
-  }
-
-  const now = new Date();
-  const scheduledAt = new Date(interview.scheduledAt);
-
-  if (action === 'START') {
-    if (
-      interview.status !== 'SCHEDULED' &&
-      interview.status !== 'RESCHEDULED'
-    ) {
-      return {
-        success: false,
-        error: 'Only scheduled interviews can be started.'
-      };
-    }
-
-    if (scheduledAt.getTime() > now.getTime()) {
-      return {
-        success: false,
-        error:
-          'This interview cannot be started before its scheduled time.'
-      };
-    }
-  }
-
-  if (
-    action === 'COMPLETE' &&
-    interview.status !== 'IN_PROGRESS'
-  ) {
-    return {
-      success: false,
-      error:
-        'Only interviews currently in progress can be completed.'
-    };
-  }
-
-  if (action === 'CANCEL') {
-    if (
-      ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(
-        interview.status
-      )
-    ) {
-      return {
-        success: false,
-        error: 'This interview can no longer be cancelled.'
-      };
-    }
-
-    if (!cancellationReason) {
-      return {
-        success: false,
-        error: 'A cancellation reason is required.'
-      };
-    }
-  }
-
-  if (action === 'NO_SHOW') {
-    if (
-      ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(
-        interview.status
-      )
-    ) {
-      return {
-        success: false,
-        error:
-          'This interview cannot be marked as a no-show.'
-      };
-    }
-
-    if (scheduledAt.getTime() > now.getTime()) {
-      return {
-        success: false,
-        error:
-          'An interview cannot be marked as a no-show before its scheduled time.'
-      };
-    }
-  }
-
-  if (action === 'RESTORE') {
-    if (interview.status !== 'CANCELLED') {
-      return {
-        success: false,
-        error:
-          'Only cancelled interviews can be restored.'
-      };
-    }
-  }
-
-  const updateData =
-    action === 'START'
-      ? {
-          status: 'IN_PROGRESS' as const,
-          startedAt: now
-        }
-      : action === 'COMPLETE'
-        ? {
-            status: 'COMPLETED' as const,
-            endedAt: now
-          }
-        : action === 'CANCEL'
-          ? {
-              status: 'CANCELLED' as const,
-              cancelledAt: now,
-              cancellationReason:
-                cancellationReason ?? null
-            }
-          : action === 'RESTORE'
-            ? {
-                status: 'SCHEDULED' as const,
-                cancelledAt: null,
-                cancellationReason: null
-              }
-            : {
-                status: 'NO_SHOW' as const,
-                endedAt: now
-              };
-
-  const eventType =
-    action === 'START'
-      ? 'STARTED'
-      : action === 'COMPLETE'
-        ? 'COMPLETED'
-        : action === 'CANCEL'
-          ? 'CANCELLED'
-          : action === 'NO_SHOW'
-            ? 'NO_SHOW'
-            : 'RESTORED';
-
-  const notification = getNotificationForAction(
-    action,
-    interview.title || interview.job.title
-  );
-
+export async function createInterviewTask(
+  interviewId: string,
+  formData: FormData
+): Promise<TaskResult> {
   try {
-    await prisma.$transaction([
-      prisma.interview.update({
+    const user = await requireAuth();
+
+    const interview = await getEmployerInterview(interviewId, user.id);
+
+    if (!interview) {
+      return {
+        success: false,
+        error: 'Interview not found.'
+      };
+    }
+
+    const title = formData.get('title');
+    const description = formData.get('description');
+    const priority = formData.get('priority');
+    const assignedToId = formData.get('assignedToId');
+    const dueAt = formData.get('dueAt');
+
+    if (typeof title !== 'string' || !title.trim()) {
+      return {
+        success: false,
+        error: 'Task title is required.'
+      };
+    }
+
+    const cleanTitle = title.trim();
+
+    const cleanDescription =
+      typeof description === 'string' && description.trim()
+        ? description.trim()
+        : null;
+
+    const cleanPriority: TaskPriority =
+      priority === 'LOW' ||
+      priority === 'MEDIUM' ||
+      priority === 'HIGH' ||
+      priority === 'URGENT'
+        ? priority
+        : 'MEDIUM';
+
+    let parsedDueAt: Date | null = null;
+
+    if (typeof dueAt === 'string' && dueAt.trim()) {
+      const date = new Date(dueAt);
+
+      if (Number.isNaN(date.getTime())) {
+        return {
+          success: false,
+          error: 'Please provide a valid task due date.'
+        };
+      }
+
+      parsedDueAt = date;
+    }
+
+    let cleanAssignedToId: string | null = null;
+
+    if (typeof assignedToId === 'string' && assignedToId !== 'unassigned') {
+      const participant = await prisma.interviewParticipant.findFirst({
         where: {
-          id: interview.id
+          interviewId,
+          userId: assignedToId
         },
-        data: updateData
-      }),
+        select: {
+          userId: true
+        }
+      });
 
-      prisma.interviewEvent.create({
+      const isEmployer = assignedToId === interview.employerId;
+      const isCandidate = assignedToId === interview.candidateId;
+
+      if (!participant && !isEmployer && !isCandidate) {
+        return {
+          success: false,
+          error: 'The selected user is not part of this interview.'
+        };
+      }
+
+      cleanAssignedToId = assignedToId;
+    }
+
+    const task = await prisma.$transaction(async tx => {
+      const createdTask = await tx.interviewTask.create({
         data: {
-          interviewId: interview.id,
+          interviewId,
+          assignedToId: cleanAssignedToId,
+          title: cleanTitle,
+          description: cleanDescription,
+          priority: cleanPriority,
+          dueAt: parsedDueAt
+        },
+        select: {
+          id: true,
+          title: true,
+          assignedToId: true
+        }
+      });
+
+      await tx.interviewEvent.create({
+        data: {
+          interviewId,
           actorId: user.id,
-          type: eventType
+          type: 'TASK_CREATED',
+          metadata: {
+            taskId: createdTask.id,
+            title: createdTask.title
+          }
         }
-      }),
+      });
 
-      prisma.notification.create({
-        data: {
-          userId: interview.candidateId,
-          type: 'INTERVIEW',
-          priority: notification.priority,
-          title: notification.title,
-          message: notification.message,
-          href: `/dashboard/interviews/${interview.id}`
-        }
-      })
-    ]);
+      if (createdTask.assignedToId && createdTask.assignedToId !== user.id) {
+        await tx.notification.create({
+          data: {
+            userId: createdTask.assignedToId,
+            type: 'INTERVIEW',
+            priority: getNotificationPriority(cleanPriority),
+            title: 'New interview task',
+            message: `You have been assigned the interview task "${createdTask.title}".`,
+            href: `/dashboard/employer/interviews/${interviewId}`
+          }
+        });
+      }
 
+      return createdTask;
+    });
+
+    revalidatePath(`/dashboard/employer/interviews/${interviewId}`);
     revalidatePath('/dashboard/employer/interviews');
 
-    revalidatePath(
-      `/dashboard/employer/interviews/${interview.id}`
-    );
-
-    revalidatePath(
-      `/dashboard/employer/applications/${interview.id}`
-    );
-
-    revalidatePath('/dashboard/interviews');
-
-    revalidatePath(
-      `/dashboard/interviews/${interview.id}`
-    );
-
     return {
-      success: true
+      success: true,
+      taskId: task.id
     };
   } catch (error) {
-    console.error('Failed to manage interview:', error);
+    console.error('createInterviewTask failed:', error);
 
     return {
       success: false,
-      error:
-        'Unable to update the interview. Please try again.'
+      error: 'Unable to create the interview task.'
+    };
+  }
+}
+
+export async function manageInterviewTask(
+  taskId: string,
+  action: TaskAction
+): Promise<TaskResult> {
+  try {
+    const user = await requireAuth();
+
+    const task = await prisma.interviewTask.findUnique({
+      where: {
+        id: taskId
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        interviewId: true,
+        assignedToId: true,
+        interview: {
+          select: {
+            employerId: true,
+            candidateId: true
+          }
+        }
+      }
+    });
+
+    if (!task) {
+      return {
+        success: false,
+        error: 'Interview task not found.'
+      };
+    }
+
+    const isEmployer = task.interview.employerId === user.id;
+    const isAssignee = task.assignedToId === user.id;
+
+    if (!isEmployer && !isAssignee) {
+      return {
+        success: false,
+        error: 'You are not authorized to manage this task.'
+      };
+    }
+
+    if (action === 'START' && task.status !== 'TODO') {
+      return {
+        success: false,
+        error: 'Only pending tasks can be started.'
+      };
+    }
+
+    if (action === 'COMPLETE' && task.status !== 'IN_PROGRESS') {
+      return {
+        success: false,
+        error: 'Only tasks currently in progress can be completed.'
+      };
+    }
+
+    if (
+      action === 'CANCEL' &&
+      (task.status === 'COMPLETED' || task.status === 'CANCELLED')
+    ) {
+      return {
+        success: false,
+        error: 'This task can no longer be cancelled.'
+      };
+    }
+
+    const now = new Date();
+
+    const updateData =
+      action === 'START'
+        ? {
+            status: 'IN_PROGRESS' as const,
+            startedAt: now
+          }
+        : action === 'COMPLETE'
+          ? {
+              status: 'COMPLETED' as const,
+              completedAt: now
+            }
+          : {
+              status: 'CANCELLED' as const
+            };
+
+    const notification = getTaskNotification(action, task.title);
+
+    const recipientId = getNotificationRecipient({
+      actorId: user.id,
+      assignedToId: task.assignedToId,
+      employerId: task.interview.employerId,
+      candidateId: task.interview.candidateId
+    });
+
+    await prisma.$transaction(async tx => {
+      await tx.interviewTask.update({
+        where: {
+          id: task.id
+        },
+        data: updateData
+      });
+
+      await tx.interviewEvent.create({
+        data: {
+          interviewId: task.interviewId,
+          actorId: user.id,
+          type: action === 'COMPLETE' ? 'TASK_COMPLETED' : 'UPDATED',
+          metadata: {
+            taskId: task.id,
+            action
+          }
+        }
+      });
+
+      if (recipientId) {
+        await tx.notification.create({
+          data: {
+            userId: recipientId,
+            type: 'INTERVIEW',
+            priority: notification.priority,
+            title: notification.title,
+            message: notification.message,
+            href: `/dashboard/employer/interviews/${task.interviewId}`
+          }
+        });
+      }
+    });
+
+    revalidatePath(`/dashboard/employer/interviews/${task.interviewId}`);
+    revalidatePath('/dashboard/employer/interviews');
+
+    return {
+      success: true,
+      taskId: task.id
+    };
+  } catch (error) {
+    console.error('manageInterviewTask failed:', error);
+
+    return {
+      success: false,
+      error: 'Unable to update the interview task.'
     };
   }
 }

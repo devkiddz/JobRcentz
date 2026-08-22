@@ -1,7 +1,14 @@
 'use client';
 
-import { useActionState } from 'react';
-import { Plus } from 'lucide-react';
+import { useActionState, useEffect, useRef } from 'react';
+import { AlertCircle, CalendarClock, CheckCircle2, ClipboardPlus, Loader2, UserRound } from 'lucide-react';
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 type ActionState = {
   success: boolean;
@@ -29,6 +36,13 @@ const initialState: ActionState = {
   success: false
 };
 
+function formatRole(role: string) {
+  return role
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, char => char.toUpperCase());
+}
+
 export default function InterviewTaskForm({
   action,
   participants,
@@ -36,6 +50,14 @@ export default function InterviewTaskForm({
   candidateId
 }: InterviewTaskFormProps) {
   const [state, formAction, pending] = useActionState(action, initialState);
+
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (state.success) {
+      formRef.current?.reset();
+    }
+  }, [state.success]);
 
   const availablePeople = [
     ...participants,
@@ -59,108 +81,208 @@ export default function InterviewTaskForm({
     }
   ].filter((person, index, array) => array.findIndex(item => item.userId === person.userId) === index);
 
-  return (
-    <form action={formAction} className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5 sm:col-span-2">
-          <label htmlFor="title" className="text-xs font-medium">
-            Task title
-          </label>
+  function handleCancel() {
+    formRef.current?.reset();
+  }
 
-          <input
+  return (
+    <form ref={formRef} action={formAction} className="space-y-6">
+      {/* Details */}
+      <section className="space-y-5">
+        <div className="flex items-start gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <ClipboardPlus className="size-4 text-primary" />
+          </div>
+
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold">Task details</h3>
+
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Define what needs to be completed during this interview.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="title">
+            Task title
+            <span className="ml-1 text-destructive">*</span>
+          </Label>
+
+          <Input
             id="title"
             name="title"
             required
+            disabled={pending}
             placeholder="e.g. Review candidate portfolio"
-            className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+            className="h-11 rounded-xl"
           />
         </div>
 
-        <div className="space-y-1.5 sm:col-span-2">
-          <label htmlFor="description" className="text-xs font-medium">
-            Description
-          </label>
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
 
-          <textarea
+          <Textarea
             id="description"
             name="description"
-            rows={3}
+            rows={4}
+            disabled={pending}
             placeholder="Describe what needs to be completed..."
-            className="w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+            className="min-h-28 resize-none rounded-xl"
           />
+
+          <p className="text-[11px] leading-4 text-muted-foreground">
+            Add useful context so the assignee knows exactly what is expected.
+          </p>
+        </div>
+      </section>
+
+      {/* Assignment */}
+      <section className="space-y-4 border-t pt-6">
+        <div className="flex items-start gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted">
+            <UserRound className="size-4 text-muted-foreground" />
+          </div>
+
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold">Assignment</h3>
+
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Choose who will be responsible for this task.
+            </p>
+          </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor="assignedToId" className="text-xs font-medium">
-            Assign to
-          </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="assignedToId">Assign to</Label>
 
-          <select
-            id="assignedToId"
-            name="assignedToId"
-            defaultValue=""
-            className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30">
-            <option value="">Unassigned</option>
+            <Select name="assignedToId" defaultValue="" disabled={pending}>
+              <SelectTrigger id="assignedToId" className="h-11 w-full rounded-xl">
+                <SelectValue placeholder="Leave unassigned" />
+              </SelectTrigger>
 
-            {availablePeople.map(person => (
-              <option key={person.userId} value={person.userId}>
-                {person.user.name} — {person.role}
-              </option>
-            ))}
-          </select>
+              <SelectContent>
+                {/* Important: empty string matches the server action */}
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+
+                {availablePeople.map(person => (
+                  <SelectItem key={person.userId} value={person.userId}>
+                    <span className="truncate">{person.user.name}</span>
+
+                    <span className="ml-1 text-muted-foreground">— {formatRole(person.role)}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="priority">Priority</Label>
+
+            <Select name="priority" defaultValue="MEDIUM" disabled={pending}>
+              <SelectTrigger id="priority" className="h-11 w-full rounded-xl">
+                <SelectValue placeholder="Select priority" />
+              </SelectTrigger>
+
+              <SelectContent>
+                <SelectItem value="LOW">Low priority</SelectItem>
+
+                <SelectItem value="MEDIUM">Medium priority</SelectItem>
+
+                <SelectItem value="HIGH">High priority</SelectItem>
+
+                <SelectItem value="URGENT">Urgent priority</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </section>
+
+      {/* Scheduling */}
+      <section className="space-y-4 border-t pt-6">
+        <div className="flex items-start gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <CalendarClock className="size-4 text-primary" />
+          </div>
+
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold">Scheduling</h3>
+
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Optionally give the task a deadline.
+            </p>
+          </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor="priority" className="text-xs font-medium">
-            Priority
-          </label>
+        <div className="space-y-2">
+          <Label htmlFor="dueAt">Due date</Label>
 
-          <select
-            id="priority"
-            name="priority"
-            defaultValue="MEDIUM"
-            className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30">
-            <option value="LOW">Low</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="HIGH">High</option>
-            <option value="URGENT">Urgent</option>
-          </select>
-        </div>
-
-        <div className="space-y-1.5 sm:col-span-2">
-          <label htmlFor="dueAt" className="text-xs font-medium">
-            Due date
-          </label>
-
-          <input
+          <Input
             id="dueAt"
             name="dueAt"
             type="datetime-local"
-            className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+            disabled={pending}
+            className="h-11 w-full rounded-xl"
           />
         </div>
-      </div>
+      </section>
 
+      {/* Feedback */}
       {state.error && (
-        <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-          {state.error}
-        </div>
+        <Alert variant="destructive" className="rounded-xl">
+          <AlertCircle className="size-4" />
+
+          <AlertTitle>Unable to create task</AlertTitle>
+
+          <AlertDescription>{state.error}</AlertDescription>
+        </Alert>
       )}
 
       {state.success && (
-        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-600 dark:text-emerald-400">
-          Interview task created successfully.
-        </div>
+        <Alert className="rounded-xl border-emerald-500/20 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400">
+          <CheckCircle2 className="size-4" />
+
+          <AlertTitle>Task created</AlertTitle>
+
+          <AlertDescription>The interview task was created successfully.</AlertDescription>
+        </Alert>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60">
-        <Plus className="size-3.5" />
+      {/* Actions */}
+      <div className="border-t pt-6">
+        <div className="grid gap-2 sm:flex sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={handleCancel}
+            className="order-2 h-11 w-full rounded-xl sm:order-1 sm:w-auto">
+            Cancel
+          </Button>
 
-        {pending ? 'Creating...' : 'Create task'}
-      </button>
+          <Button
+            type="submit"
+            disabled={pending}
+            className="order-1 h-11 w-full rounded-xl px-5 sm:order-2 sm:w-auto">
+            {pending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Creating task...
+              </>
+            ) : (
+              <>
+                <ClipboardPlus className="size-4" />
+                Create task
+              </>
+            )}
+          </Button>
+        </div>
+
+        <p className="mt-3 text-center text-[11px] text-muted-foreground sm:text-right">
+          You can update task progress after creation.
+        </p>
+      </div>
     </form>
   );
 }

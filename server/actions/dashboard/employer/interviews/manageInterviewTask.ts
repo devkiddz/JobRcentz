@@ -7,6 +7,8 @@ import { prisma } from '@/server/db/prisma';
 
 type TaskAction = 'START' | 'COMPLETE' | 'CANCEL';
 
+type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
 type TaskResult =
   | {
       success: true;
@@ -23,7 +25,34 @@ type TaskNotification = {
   priority: 'NORMAL' | 'HIGH' | 'URGENT';
 };
 
-function getTaskNotification(action: TaskAction, taskTitle: string): TaskNotification {
+const TASK_PRIORITIES: TaskPriority[] = [
+  'LOW',
+  'MEDIUM',
+  'HIGH',
+  'URGENT'
+];
+
+function isTaskPriority(value: FormDataEntryValue | null): value is TaskPriority {
+  return typeof value === 'string' && TASK_PRIORITIES.includes(value as TaskPriority);
+}
+
+function getTaskPriority(priority: TaskPriority): 'NORMAL' | 'HIGH' | 'URGENT' {
+  switch (priority) {
+    case 'URGENT':
+      return 'URGENT';
+
+    case 'HIGH':
+      return 'HIGH';
+
+    default:
+      return 'NORMAL';
+  }
+}
+
+function getTaskNotification(
+  action: TaskAction,
+  taskTitle: string
+): TaskNotification {
   switch (action) {
     case 'START':
       return {
@@ -48,19 +77,6 @@ function getTaskNotification(action: TaskAction, taskTitle: string): TaskNotific
   }
 }
 
-function getTaskPriority(priority: string): 'NORMAL' | 'HIGH' | 'URGENT' {
-  switch (priority) {
-    case 'URGENT':
-      return 'URGENT';
-
-    case 'HIGH':
-      return 'HIGH';
-
-    default:
-      return 'NORMAL';
-  }
-}
-
 function getNotificationRecipient({
   actorId,
   assignedToId,
@@ -72,10 +88,17 @@ function getNotificationRecipient({
   employerId: string;
   candidateId: string;
 }) {
+  /*
+   * If the task has an assignee and somebody else performs the action,
+   * notify the assignee.
+   */
   if (assignedToId && assignedToId !== actorId) {
     return assignedToId;
   }
 
+  /*
+   * If there is no separate assignee, notify the other interview party.
+   */
   if (candidateId !== actorId) {
     return candidateId;
   }
@@ -87,7 +110,10 @@ function getNotificationRecipient({
   return null;
 }
 
-async function getEmployerInterview(interviewId: string, userId: string) {
+async function getEmployerInterview(
+  interviewId: string,
+  userId: string
+) {
   return prisma.interview.findFirst({
     where: {
       id: interviewId,
@@ -95,12 +121,60 @@ async function getEmployerInterview(interviewId: string, userId: string) {
     },
     select: {
       id: true,
-      jobId: true,
       employerId: true,
-      candidateId: true,
-      title: true
+      candidateId: true
     }
   });
+}
+
+async function getInterviewTask(taskId: string) {
+  return prisma.interviewTask.findUnique({
+    where: {
+      id: taskId
+    },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      interviewId: true,
+      assignedToId: true,
+      interview: {
+        select: {
+          id: true,
+          employerId: true,
+          candidateId: true
+        }
+      }
+    }
+  });
+}
+
+function getTaskTransitionError(
+  action: TaskAction,
+  status: string
+): string | null {
+  switch (action) {
+    case 'START':
+      if (status !== 'TODO') {
+        return 'Only pending tasks can be started.';
+      }
+
+      return null;
+
+    case 'COMPLETE':
+      if (status !== 'IN_PROGRESS') {
+        return 'Only tasks currently in progress can be completed.';
+      }
+
+      return null;
+
+    case 'CANCEL':
+      if (status === 'COMPLETED' || status === 'CANCELLED') {
+        return 'This task can no longer be cancelled.';
+      }
+
+      return null;
+  }
 }
 
 export async function createInterviewTask(
@@ -125,6 +199,11 @@ export async function createInterviewTask(
     const assignedToId = formData.get('assignedToId');
     const dueAt = formData.get('dueAt');
 
+    /*
+     * -----------------------------
+     * Validate title
+     * -----------------------------
+     */
     if (typeof title !== 'string' || !title.trim()) {
       return {
         success: false,
@@ -134,37 +213,40 @@ export async function createInterviewTask(
 
     const cleanTitle = title.trim();
 
+    /*
+     * -----------------------------
+     * Validate description
+     * -----------------------------
+     */
     const cleanDescription =
       typeof description === 'string' && description.trim()
         ? description.trim()
         : null;
 
-    const cleanPriority =
-      priority === 'LOW' ||
-      priority === 'MEDIUM' ||
-      priority === 'HIGH' ||
-      priority === 'URGENT'
-        ? priority
-        : 'MEDIUM';
+    /*
+     * -----------------------------
+     * Validate priority
+     * -----------------------------
+     */
+    const cleanPriority: TaskPriority = isTaskPriority(priority)
+      ? priority
+      : 'MEDIUM';
 
-    let parsedDueAt: Date | null = null;
-
-    if (typeof dueAt === 'string' && dueAt.trim()) {
-      const date = new Date(dueAt);
-
-      if (Number.isNaN(date.getTime())) {
-        return {
-          success: false,
-          error: 'Please provide a valid task due date.'
-        };
-      }
-
-      parsedDueAt = date;
-    }
-
+    /*
+     * -----------------------------
+     * Validate assignment
+     *
+     * The UI uses "unassigned".
+     * The database uses null.
+     * -----------------------------
+     */
     let cleanAssignedToId: string | null = null;
 
-    if (typeof assignedToId === 'string' && assignedToId.trim()) {
+    if (
+      typeof assignedToId === 'string' &&
+      assignedToId.trim() &&
+      assignedToId !== 'unassigned'
+    ) {
       const participant = await prisma.interviewParticipant.findFirst({
         where: {
           interviewId,
@@ -188,6 +270,32 @@ export async function createInterviewTask(
       cleanAssignedToId = assignedToId;
     }
 
+    /*
+     * -----------------------------
+     * Validate due date
+     * -----------------------------
+     */
+    let parsedDueAt: Date | null = null;
+
+    if (typeof dueAt === 'string' && dueAt.trim()) {
+      const date = new Date(dueAt);
+
+      if (Number.isNaN(date.getTime())) {
+        return {
+          success: false,
+          error: 'Please provide a valid task due date.'
+        };
+      }
+
+      parsedDueAt = date;
+    }
+
+    /*
+     * -----------------------------
+     * Create task + event +
+     * notification atomically.
+     * -----------------------------
+     */
     const task = await prisma.$transaction(async tx => {
       const createdTask = await tx.interviewTask.create({
         data: {
@@ -212,12 +320,17 @@ export async function createInterviewTask(
           type: 'TASK_CREATED',
           metadata: {
             taskId: createdTask.id,
-            title: createdTask.title
+            title: createdTask.title,
+            priority: cleanPriority,
+            assignedToId: createdTask.assignedToId
           }
         }
       });
 
-      if (createdTask.assignedToId && createdTask.assignedToId !== user.id) {
+      if (
+        createdTask.assignedToId &&
+        createdTask.assignedToId !== user.id
+      ) {
         await tx.notification.create({
           data: {
             userId: createdTask.assignedToId,
@@ -233,7 +346,15 @@ export async function createInterviewTask(
       return createdTask;
     });
 
-    revalidatePath(`/dashboard/employer/interviews/${interviewId}`);
+    /*
+     * -----------------------------
+     * Refresh relevant interview UI.
+     * -----------------------------
+     */
+    revalidatePath(
+      `/dashboard/employer/interviews/${interviewId}`
+    );
+
     revalidatePath('/dashboard/employer/interviews');
 
     return {
@@ -257,26 +378,28 @@ export async function manageInterviewTask(
   try {
     const user = await requireAuth();
 
-    const task = await prisma.interviewTask.findUnique({
-      where: {
-        id: taskId
-      },
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        interviewId: true,
-        assignedToId: true,
-        interview: {
-          select: {
-            id: true,
-            employerId: true,
-            candidateId: true,
-            title: true
-          }
-        }
-      }
-    });
+    /*
+     * -----------------------------
+     * Validate action
+     * -----------------------------
+     */
+    if (
+      action !== 'START' &&
+      action !== 'COMPLETE' &&
+      action !== 'CANCEL'
+    ) {
+      return {
+        success: false,
+        error: 'Invalid task action.'
+      };
+    }
+
+    /*
+     * -----------------------------
+     * Load task
+     * -----------------------------
+     */
+    const task = await getInterviewTask(taskId);
 
     if (!task) {
       return {
@@ -285,6 +408,14 @@ export async function manageInterviewTask(
       };
     }
 
+    /*
+     * -----------------------------
+     * Authorization
+     *
+     * Employer can manage every task.
+     * Assigned user can manage their task.
+     * -----------------------------
+     */
     const isEmployer = task.interview.employerId === user.id;
     const isAssignee = task.assignedToId === user.id;
 
@@ -295,32 +426,30 @@ export async function manageInterviewTask(
       };
     }
 
-    if (action === 'START' && task.status !== 'TODO') {
-      return {
-        success: false,
-        error: 'Only pending tasks can be started.'
-      };
-    }
+    /*
+     * -----------------------------
+     * Validate state transition
+     * -----------------------------
+     */
+    const transitionError = getTaskTransitionError(
+      action,
+      task.status
+    );
 
-    if (action === 'COMPLETE' && task.status !== 'IN_PROGRESS') {
+    if (transitionError) {
       return {
         success: false,
-        error: 'Only tasks currently in progress can be completed.'
-      };
-    }
-
-    if (
-      action === 'CANCEL' &&
-      ['COMPLETED', 'CANCELLED'].includes(task.status)
-    ) {
-      return {
-        success: false,
-        error: 'This task can no longer be cancelled.'
+        error: transitionError
       };
     }
 
     const now = new Date();
 
+    /*
+     * -----------------------------
+     * Build database update
+     * -----------------------------
+     */
     const updateData =
       action === 'START'
         ? {
@@ -336,7 +465,10 @@ export async function manageInterviewTask(
               status: 'CANCELLED' as const
             };
 
-    const notification = getTaskNotification(action, task.title);
+    const notification = getTaskNotification(
+      action,
+      task.title
+    );
 
     const recipientId = getNotificationRecipient({
       actorId: user.id,
@@ -345,6 +477,12 @@ export async function manageInterviewTask(
       candidateId: task.interview.candidateId
     });
 
+    /*
+     * -----------------------------
+     * Update task + event +
+     * notification atomically.
+     * -----------------------------
+     */
     await prisma.$transaction(async tx => {
       await tx.interviewTask.update({
         where: {
@@ -357,10 +495,20 @@ export async function manageInterviewTask(
         data: {
           interviewId: task.interviewId,
           actorId: user.id,
-          type: action === 'COMPLETE' ? 'TASK_COMPLETED' : 'UPDATED',
+          type:
+            action === 'COMPLETE'
+              ? 'TASK_COMPLETED'
+              : 'UPDATED',
           metadata: {
             taskId: task.id,
-            action
+            action,
+            previousStatus: task.status,
+            newStatus:
+              action === 'START'
+                ? 'IN_PROGRESS'
+                : action === 'COMPLETE'
+                  ? 'COMPLETED'
+                  : 'CANCELLED'
           }
         }
       });
@@ -379,7 +527,15 @@ export async function manageInterviewTask(
       }
     });
 
-    revalidatePath(`/dashboard/employer/interviews/${task.interviewId}`);
+    /*
+     * -----------------------------
+     * Refresh interview pages.
+     * -----------------------------
+     */
+    revalidatePath(
+      `/dashboard/employer/interviews/${task.interviewId}`
+    );
+
     revalidatePath('/dashboard/employer/interviews');
 
     return {
