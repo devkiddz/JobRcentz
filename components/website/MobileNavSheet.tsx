@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Menu } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
@@ -14,9 +15,10 @@ interface MobileNavSheetProps {
 
 export default function MobileNavSheet({ navigation }: MobileNavSheetProps) {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
         type="button"
         aria-label="Open navigation menu"
@@ -38,6 +40,7 @@ export default function MobileNavSheet({ navigation }: MobileNavSheetProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setOpen(false)}
                 className={`flex min-h-11 items-center rounded-lg px-4 text-sm font-medium transition-colors ${
                   isActive
                     ? 'bg-primary/10 text-primary'

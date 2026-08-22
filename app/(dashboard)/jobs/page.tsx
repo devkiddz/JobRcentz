@@ -22,8 +22,13 @@ function formatDate(date: Date | null) {
   }).format(new Date(date));
 }
 
-export default async function JobsPage() {
-  const jobs = await getPublishedJobs();
+export default async function JobsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ q?: string; location?: string }>;
+}) {
+  const { q, location } = await searchParams;
+  const jobs = await getPublishedJobs({ query: q, location });
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-8 p-4 sm:p-6 lg:p-8">
@@ -36,7 +41,9 @@ export default async function JobsPage() {
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Find Your Next Opportunity</h1>
 
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Explore published jobs from companies looking for talented professionals.
+            {q || location
+              ? `Showing opportunities matching ${[q, location].filter(Boolean).join(' in ')}.`
+              : 'Explore published jobs from companies looking for talented professionals.'}
             </p>
           </div>
 

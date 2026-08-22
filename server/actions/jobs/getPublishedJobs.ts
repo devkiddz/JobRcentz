@@ -1,12 +1,25 @@
 import { requireAuth } from '@/server/auth/requireAuth';
 import { prisma } from '@/server/db/prisma';
 
-export async function getPublishedJobs() {
+export async function getPublishedJobs(filters?: { query?: string; location?: string }) {
   await requireAuth();
+
+  const query = filters?.query?.trim();
+  const location = filters?.location?.trim();
 
   const jobs = await prisma.job.findMany({
     where: {
-      status: 'PUBLISHED'
+      status: 'PUBLISHED',
+      ...(query
+        ? {
+            OR: [
+              { title: { contains: query, mode: 'insensitive' as const } },
+              { description: { contains: query, mode: 'insensitive' as const } },
+              { skills: { has: query } }
+            ]
+          }
+        : {}),
+      ...(location ? { location: { contains: location, mode: 'insensitive' as const } } : {})
     },
     orderBy: {
       publishedAt: 'desc'

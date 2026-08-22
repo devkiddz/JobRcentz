@@ -13,9 +13,10 @@ import NotificationButton from './NotificationButton';
 
 interface NavBarProps {
   user?: CurrentUser | null;
+  unreadNotificationCount?: number;
 }
 
-export default function NavBar({ user }: NavBarProps) {
+export default function NavBar({ user, unreadNotificationCount = 0 }: NavBarProps) {
   const pathname = usePathname();
   const navigation: NavigationItem[] = user
     ? [{ href: '/dashboard', label: 'Dashboard' }, ...publicNavigation]
@@ -59,7 +60,7 @@ export default function NavBar({ user }: NavBarProps) {
         {/* Account actions */}
         {/* Actions */}
         <div className="ml-auto flex min-w-0 shrink-0 items-center gap-2">
-          {user && <NotificationButton />}
+          {user && <NotificationButton unreadCount={unreadNotificationCount} />}
 
           <ActionButton user={user ?? undefined} />
         </div>
