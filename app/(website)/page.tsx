@@ -16,7 +16,7 @@ export default async function Home() {
       <FeaturedJobs jobs={jobs} />
 
       <section className="border-y bg-muted/30">
-        <div className="mx-auto max-w-7xl px-4 py-24 text-center lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:py-20 lg:px-8 lg:py-24">
           <p className="text-sm font-medium text-primary">Job Rcentz</p>
 
           <h2 className="mx-auto mt-2 max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">

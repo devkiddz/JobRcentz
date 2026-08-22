@@ -6,101 +6,76 @@ import { requireAuth } from '@/server/auth/requireAuth';
 import { prisma } from '@/server/db/prisma';
 
 type TaskAction = 'START' | 'COMPLETE' | 'CANCEL';
+type TaskResult = { success: true; taskId: string } | { success: false; error: string };
 
-type TaskResult =
-  | {
-      success: true;
-      taskId: string;
-    }
-  | {
-      success: false;
-      error: string;
-    };
-
-type TaskNotification = {
+type ParsedTask = {
   title: string;
-  message: string;
-  priority: 'NORMAL' | 'HIGH' | 'URGENT';
+  description: string | null;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  assignedToId: string | null;
+  dueAt: Date | null;
 };
 
-function getTaskNotification(action: TaskAction, taskTitle: string): TaskNotification {
-  switch (action) {
-    case 'START':
-      return {
-        title: 'Interview task started',
-        message: `The interview task "${taskTitle}" has been started.`,
-        priority: 'NORMAL'
-      };
-
-    case 'COMPLETE':
-      return {
-        title: 'Interview task completed',
-        message: `The interview task "${taskTitle}" has been completed.`,
-        priority: 'NORMAL'
-      };
-
-    case 'CANCEL':
-      return {
-        title: 'Interview task cancelled',
-        message: `The interview task "${taskTitle}" has been cancelled.`,
-        priority: 'HIGH'
-      };
-  }
-}
-
-function getTaskPriority(priority: string): 'NORMAL' | 'HIGH' | 'URGENT' {
-  switch (priority) {
-    case 'URGENT':
-      return 'URGENT';
-
-    case 'HIGH':
-      return 'HIGH';
-
-    default:
-      return 'NORMAL';
-  }
-}
-
-function getNotificationRecipient({
-  actorId,
-  assignedToId,
-  employerId,
-  candidateId
-}: {
-  actorId: string;
-  assignedToId: string | null;
-  employerId: string;
-  candidateId: string;
-}) {
-  if (assignedToId && assignedToId !== actorId) {
-    return assignedToId;
+function parseTaskForm(formData: FormData): ParsedTask | { error: string } {
+  const title = formData.get('title');
+  if (typeof title !== 'string' || !title.trim()) {
+    return { error: 'Task title is required.' };
   }
 
-  if (candidateId !== actorId) {
-    return candidateId;
-  }
+  const rawPriority = formData.get('priority');
+  const priority: ParsedTask['priority'] =
+    rawPriority === 'LOW' || rawPriority === 'HIGH' || rawPriority === 'URGENT'
+      ? rawPriority
+      : 'MEDIUM';
 
-  if (employerId !== actorId) {
-    return employerId;
-  }
-
-  return null;
-}
-
-async function getEmployerInterview(interviewId: string, userId: string) {
-  return prisma.interview.findFirst({
-    where: {
-      id: interviewId,
-      employerId: userId
-    },
-    select: {
-      id: true,
-      jobId: true,
-      employerId: true,
-      candidateId: true,
-      title: true
+  const rawDueAt = formData.get('dueAt');
+  let dueAt: Date | null = null;
+  if (typeof rawDueAt === 'string' && rawDueAt.trim()) {
+    dueAt = new Date(rawDueAt);
+    if (Number.isNaN(dueAt.getTime())) {
+      return { error: 'Please provide a valid due date.' };
     }
+  }
+
+  const rawAssignedToId = formData.get('assignedToId');
+
+  return {
+    title: title.trim(),
+    description:
+      typeof formData.get('description') === 'string' && String(formData.get('description')).trim()
+        ? String(formData.get('description')).trim()
+        : null,
+    priority,
+    assignedToId:
+      typeof rawAssignedToId === 'string' && rawAssignedToId !== 'unassigned'
+        ? rawAssignedToId
+        : null,
+    dueAt
+  };
+}
+
+async function getInterviewForEmployer(interviewId: string, userId: string) {
+  return prisma.interview.findFirst({
+    where: { id: interviewId, employerId: userId },
+    select: { id: true, employerId: true, candidateId: true }
   });
+}
+
+async function isValidAssignee(
+  interviewId: string,
+  employerId: string,
+  candidateId: string,
+  assignedToId: string | null
+) {
+  if (!assignedToId) return true;
+  if (assignedToId === employerId || assignedToId === candidateId) return true;
+
+  const participant = await prisma.interviewParticipant.findFirst({
+    where: { interviewId, userId: assignedToId },
+    select: { userId: true }
+  });
+
+  return Boolean(participant);
 }
 
 export async function createInterviewTask(
@@ -109,100 +84,25 @@ export async function createInterviewTask(
 ): Promise<TaskResult> {
   try {
     const user = await requireAuth();
+    const interview = await getInterviewForEmployer(interviewId, user.id);
+    if (!interview) return { success: false, error: 'Interview not found.' };
 
-    const interview = await getEmployerInterview(interviewId, user.id);
+    const parsed = parseTaskForm(formData);
+    if ('error' in parsed) return { success: false, error: parsed.error };
 
-    if (!interview) {
-      return {
-        success: false,
-        error: 'Interview not found.'
-      };
-    }
-
-    const title = formData.get('title');
-    const description = formData.get('description');
-    const priority = formData.get('priority');
-    const assignedToId = formData.get('assignedToId');
-    const dueAt = formData.get('dueAt');
-
-    if (typeof title !== 'string' || !title.trim()) {
-      return {
-        success: false,
-        error: 'Task title is required.'
-      };
-    }
-
-    const cleanTitle = title.trim();
-
-    const cleanDescription =
-      typeof description === 'string' && description.trim()
-        ? description.trim()
-        : null;
-
-    const cleanPriority =
-      priority === 'LOW' ||
-      priority === 'MEDIUM' ||
-      priority === 'HIGH' ||
-      priority === 'URGENT'
-        ? priority
-        : 'MEDIUM';
-
-    let parsedDueAt: Date | null = null;
-
-    if (typeof dueAt === 'string' && dueAt.trim()) {
-      const date = new Date(dueAt);
-
-      if (Number.isNaN(date.getTime())) {
-        return {
-          success: false,
-          error: 'Please provide a valid task due date.'
-        };
-      }
-
-      parsedDueAt = date;
-    }
-
-    let cleanAssignedToId: string | null = null;
-
-    if (typeof assignedToId === 'string' && assignedToId.trim()) {
-      const participant = await prisma.interviewParticipant.findFirst({
-        where: {
-          interviewId,
-          userId: assignedToId
-        },
-        select: {
-          userId: true
-        }
-      });
-
-      const isEmployer = assignedToId === interview.employerId;
-      const isCandidate = assignedToId === interview.candidateId;
-
-      if (!participant && !isEmployer && !isCandidate) {
-        return {
-          success: false,
-          error: 'The selected user is not part of this interview.'
-        };
-      }
-
-      cleanAssignedToId = assignedToId;
+    if (!(await isValidAssignee(
+      interviewId,
+      interview.employerId,
+      interview.candidateId,
+      parsed.assignedToId
+    ))) {
+      return { success: false, error: 'The selected user is not part of this interview.' };
     }
 
     const task = await prisma.$transaction(async tx => {
-      const createdTask = await tx.interviewTask.create({
-        data: {
-          interviewId,
-          assignedToId: cleanAssignedToId,
-          title: cleanTitle,
-          description: cleanDescription,
-          priority: cleanPriority,
-          dueAt: parsedDueAt
-        },
-        select: {
-          id: true,
-          title: true,
-          assignedToId: true
-        }
+      const created = await tx.interviewTask.create({
+        data: { interviewId, ...parsed },
+        select: { id: true, title: true, assignedToId: true }
       });
 
       await tx.interviewEvent.create({
@@ -210,43 +110,85 @@ export async function createInterviewTask(
           interviewId,
           actorId: user.id,
           type: 'TASK_CREATED',
-          metadata: {
-            taskId: createdTask.id,
-            title: createdTask.title
-          }
+          metadata: { taskId: created.id, title: created.title }
         }
       });
 
-      if (createdTask.assignedToId && createdTask.assignedToId !== user.id) {
-        await tx.notification.create({
-          data: {
-            userId: createdTask.assignedToId,
-            type: 'INTERVIEW',
-            priority: getTaskPriority(cleanPriority),
-            title: 'New interview task',
-            message: `You have been assigned the interview task "${createdTask.title}".`,
-            href: `/dashboard/interviews/${interview.id}`
-          }
-        });
-      }
-
-      return createdTask;
+      return created;
     });
 
     revalidatePath(`/dashboard/employer/interviews/${interviewId}`);
     revalidatePath('/dashboard/employer/interviews');
-
-    return {
-      success: true,
-      taskId: task.id
-    };
+    return { success: true, taskId: task.id };
   } catch (error) {
     console.error('createInterviewTask failed:', error);
+    return { success: false, error: 'Unable to create the interview task.' };
+  }
+}
 
-    return {
-      success: false,
-      error: 'Unable to create the interview task.'
-    };
+export async function updateInterviewTask(
+  taskId: string,
+  formData: FormData
+): Promise<TaskResult> {
+  try {
+    const user = await requireAuth();
+
+    const task = await prisma.interviewTask.findUnique({
+      where: { id: taskId },
+      select: {
+        id: true,
+        interviewId: true,
+        title: true,
+        status: true,
+        assignedToId: true,
+        interview: {
+          select: { id: true, employerId: true, candidateId: true }
+        }
+      }
+    });
+
+    if (!task) return { success: false, error: 'Interview task not found.' };
+    if (task.interview.employerId !== user.id) {
+      return { success: false, error: 'Only the employer can edit this task.' };
+    }
+    if (task.status === 'COMPLETED' || task.status === 'CANCELLED') {
+      return { success: false, error: 'Completed or cancelled tasks can no longer be edited.' };
+    }
+
+    const parsed = parseTaskForm(formData);
+    if ('error' in parsed) return { success: false, error: parsed.error };
+
+    if (!(await isValidAssignee(
+      task.interviewId,
+      task.interview.employerId,
+      task.interview.candidateId,
+      parsed.assignedToId
+    ))) {
+      return { success: false, error: 'The selected user is not part of this interview.' };
+    }
+
+    await prisma.$transaction(async tx => {
+      await tx.interviewTask.update({
+        where: { id: task.id },
+        data: parsed
+      });
+
+      await tx.interviewEvent.create({
+        data: {
+          interviewId: task.interviewId,
+          actorId: user.id,
+          type: 'UPDATED',
+          metadata: { taskId: task.id, action: 'EDITED', title: parsed.title }
+        }
+      });
+    });
+
+    revalidatePath(`/dashboard/employer/interviews/${task.interviewId}`);
+    revalidatePath('/dashboard/employer/interviews');
+    return { success: true, taskId: task.id };
+  } catch (error) {
+    console.error('updateInterviewTask failed:', error);
+    return { success: false, error: 'Unable to update the interview task.' };
   }
 }
 
@@ -258,9 +200,7 @@ export async function manageInterviewTask(
     const user = await requireAuth();
 
     const task = await prisma.interviewTask.findUnique({
-      where: {
-        id: taskId
-      },
+      where: { id: taskId },
       select: {
         id: true,
         title: true,
@@ -268,130 +208,54 @@ export async function manageInterviewTask(
         interviewId: true,
         assignedToId: true,
         interview: {
-          select: {
-            id: true,
-            employerId: true,
-            candidateId: true,
-            title: true
-          }
+          select: { employerId: true, candidateId: true }
         }
       }
     });
 
-    if (!task) {
-      return {
-        success: false,
-        error: 'Interview task not found.'
-      };
-    }
+    if (!task) return { success: false, error: 'Interview task not found.' };
 
-    const isEmployer = task.interview.employerId === user.id;
-    const isAssignee = task.assignedToId === user.id;
-
-    if (!isEmployer && !isAssignee) {
-      return {
-        success: false,
-        error: 'You are not authorized to manage this task.'
-      };
+    const canManage =
+      task.interview.employerId === user.id || task.assignedToId === user.id;
+    if (!canManage) {
+      return { success: false, error: 'You are not authorized to manage this task.' };
     }
 
     if (action === 'START' && task.status !== 'TODO') {
-      return {
-        success: false,
-        error: 'Only pending tasks can be started.'
-      };
+      return { success: false, error: 'Only pending tasks can be started.' };
     }
-
     if (action === 'COMPLETE' && task.status !== 'IN_PROGRESS') {
-      return {
-        success: false,
-        error: 'Only tasks currently in progress can be completed.'
-      };
+      return { success: false, error: 'Only tasks currently in progress can be completed.' };
     }
-
-    if (
-      action === 'CANCEL' &&
-      ['COMPLETED', 'CANCELLED'].includes(task.status)
-    ) {
-      return {
-        success: false,
-        error: 'This task can no longer be cancelled.'
-      };
+    if (action === 'CANCEL' && ['COMPLETED', 'CANCELLED'].includes(task.status)) {
+      return { success: false, error: 'This task can no longer be cancelled.' };
     }
 
     const now = new Date();
-
-    const updateData =
+    const data =
       action === 'START'
-        ? {
-            status: 'IN_PROGRESS' as const,
-            startedAt: now
-          }
+        ? { status: 'IN_PROGRESS' as const, startedAt: now }
         : action === 'COMPLETE'
-          ? {
-              status: 'COMPLETED' as const,
-              completedAt: now
-            }
-          : {
-              status: 'CANCELLED' as const
-            };
-
-    const notification = getTaskNotification(action, task.title);
-
-    const recipientId = getNotificationRecipient({
-      actorId: user.id,
-      assignedToId: task.assignedToId,
-      employerId: task.interview.employerId,
-      candidateId: task.interview.candidateId
-    });
+          ? { status: 'COMPLETED' as const, completedAt: now }
+          : { status: 'CANCELLED' as const };
 
     await prisma.$transaction(async tx => {
-      await tx.interviewTask.update({
-        where: {
-          id: task.id
-        },
-        data: updateData
-      });
-
+      await tx.interviewTask.update({ where: { id: task.id }, data });
       await tx.interviewEvent.create({
         data: {
           interviewId: task.interviewId,
           actorId: user.id,
           type: action === 'COMPLETE' ? 'TASK_COMPLETED' : 'UPDATED',
-          metadata: {
-            taskId: task.id,
-            action
-          }
+          metadata: { taskId: task.id, action }
         }
       });
-
-      if (recipientId) {
-        await tx.notification.create({
-          data: {
-            userId: recipientId,
-            type: 'INTERVIEW',
-            priority: notification.priority,
-            title: notification.title,
-            message: notification.message,
-            href: `/dashboard/interviews/${task.interviewId}`
-          }
-        });
-      }
     });
 
     revalidatePath(`/dashboard/employer/interviews/${task.interviewId}`);
     revalidatePath('/dashboard/employer/interviews');
-
-    return {
-      success: true,
-      taskId: task.id
-    };
+    return { success: true, taskId: task.id };
   } catch (error) {
     console.error('manageInterviewTask failed:', error);
-
-    return {
-      success: false,
-      error: 'Unable to update the interview task.'
-    };
+    return { success: false, error: 'Unable to update the interview task.' };
   }
 }

@@ -1,20 +1,20 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Plus, Search } from 'lucide-react';
 
 import NotificationBell from './NotificationBell';
+import { DashboardSidebarToggle } from './DashboardSidebar';
 import { motion, type Variants } from 'framer-motion';
 
 import type { DashboardUser } from '@/server/actions/dashboard/getDashboardUser';
 
 import UserHelperSheet, { type UserHelperUser } from '@/components/website/UserHelperSheet';
 
-import { Button, buttonVariants } from '@/components/ui/button';
 
 interface DashboardHeaderProps {
   user: DashboardUser;
+  sidebarOpen: boolean;
+  onSidebarToggle: () => void;
 }
 
 const headerContentVariants: Variants = {
@@ -142,13 +142,6 @@ function getPageContext(pathname: string): PageContext {
     };
   }
 
-  if (pathname === '/dashboard/settings' || pathname.startsWith('/dashboard/settings/')) {
-    return {
-      title: 'Settings',
-      description: 'Manage your account preferences.'
-    };
-  }
-
   return {
     title: 'Dashboard',
     description: 'Manage your JobMan workspace.'
@@ -171,7 +164,7 @@ function getRoleLabel(role: DashboardUser['role']) {
   }
 }
 
-export default function DashboardHeader({ user }: DashboardHeaderProps) {
+export default function DashboardHeader({ user, sidebarOpen, onSidebarToggle }: DashboardHeaderProps) {
   const pathname = usePathname();
 
   const displayName = user.name?.trim() || 'User';
@@ -198,18 +191,17 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
     companyName
   };
 
-  const showEmployerQuickAction = user.role === 'EMPLOYER';
-
   return (
     <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <motion.div
         variants={headerContentVariants}
         initial="hidden"
         animate="visible"
-        className="flex min-h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        className="flex min-h-14 items-center justify-between gap-3 px-4 sm:min-h-16 sm:px-6 lg:px-8">
         {/* Page context */}
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <DashboardSidebarToggle open={sidebarOpen} onClick={onSidebarToggle} />
             <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">{page.title}</h1>
           </div>
 
@@ -220,37 +212,9 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
 
         {/* Right side */}
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          {/* Search */}
-          {/* <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-9 rounded-lg text-muted-foreground hover:text-foreground"
-            aria-label="Search">
-            <Search className="size-4" />
-          </Button> */}
-
-          {/* Employer quick action */}
-          {/* Employer quick action */}
-          {showEmployerQuickAction && (
-            <Link
-              href="/dashboard/employer/jobs/create"
-              aria-label="Post a new job"
-              title="Post a new job"
-              className={buttonVariants({
-                variant: 'outline',
-                size: 'icon',
-                className: 'size-9 rounded-lg shadow-sm'
-              })}>
-              <Plus className="size-4" />
-            </Link>
-          )}
-
           {/* Notifications */}
           <NotificationBell />
 
-          {/* Divider */}
-          <div aria-hidden="true" className="mx-1 hidden h-7 w-px bg-border sm:block" />
           {/* Divider */}
           <div aria-hidden="true" className="mx-1 hidden h-7 w-px bg-border sm:block" />
 

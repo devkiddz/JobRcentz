@@ -250,7 +250,7 @@ export default function MobileJobCarousel({ jobs }: MobileJobCarouselProps) {
   }
 
   return (
-    <section className="mt-12 w-full lg:hidden">
+    <section className="mt-8 w-full lg:hidden">
       {/* =========================================================
           SECTION HEADER
       ========================================================= */}
@@ -333,7 +333,7 @@ export default function MobileJobCarousel({ jobs }: MobileJobCarouselProps) {
               className="group block h-full">
               <article
                 className={[
-                  'relative flex h-full min-h-[350px] flex-col',
+                  'relative flex h-full min-h-[310px] flex-col',
                   'overflow-hidden rounded-[1.5rem]',
                   'border border-border',
                   'bg-card text-card-foreground',

@@ -24,8 +24,8 @@ export default function MobileNavSheet({ navigation }: MobileNavSheetProps) {
         <Menu className="size-5" />
       </SheetTrigger>
 
-      <SheetContent side="left" className="w-[300px] p-0 sm:w-[340px]">
-        <SheetHeader className="border-b px-6 py-6 text-left">
+      <SheetContent side="left" className="w-[min(20rem,calc(100vw-2rem))] p-0">
+        <SheetHeader className="border-b px-5 py-5 text-left">
           <SheetTitle>Navigation</SheetTitle>
         </SheetHeader>
 

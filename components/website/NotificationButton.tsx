@@ -1,24 +1,17 @@
 'use client';
 
 import { Bell } from 'lucide-react';
+import Link from 'next/link';
 
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 
 export default function NotificationButton() {
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="icon"
+    <Link
+      href="/dashboard/notifications"
       aria-label="Notifications"
-      className="relative size-10 shrink-0 rounded-full">
+      className={buttonVariants({ variant: 'outline', size: 'icon', className: 'relative size-10 shrink-0 rounded-full' })}>
       <Bell className="size-5" />
-
-      {/* Unread indicator */}
-      <span
-        aria-hidden="true"
-        className="absolute right-2 top-2 size-2 rounded-full bg-primary ring-2 ring-background"
-      />
-    </Button>
+    </Link>
   );
 }

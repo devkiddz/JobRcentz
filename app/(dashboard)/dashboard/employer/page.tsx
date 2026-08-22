@@ -12,7 +12,7 @@ export default async function EmployerDashboardPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-8 md:p-4 lg:p-8">
+    <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-5 sm:space-y-8 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
       <EmployerDashboard dashboard={dashboard} />
     </main>
   );

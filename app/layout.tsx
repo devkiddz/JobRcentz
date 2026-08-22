@@ -6,6 +6,7 @@ import './globals.css';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { GridBackground } from '@/backgrounds/GridBackground';
 import { cn } from '@/lib/utils';
+import { MotionConfig } from 'framer-motion';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -27,7 +28,9 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       className={cn('h-full', 'antialiased', notoSans.variable, 'font-sans', geist.variable)}>
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <GridBackground gridSize={120}>{children}</GridBackground>
+          <MotionConfig reducedMotion="user">
+            <GridBackground gridSize={120}>{children}</GridBackground>
+          </MotionConfig>
         </ThemeProvider>
       </body>
     </html>

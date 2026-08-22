@@ -38,7 +38,7 @@ export default function HeroJobSearch({ className = '' }: HeroJobSearchProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className={`mt-10 w-full max-w-3xl rounded-[1.5rem] border bg-background p-3 shadow-2xl shadow-black/10 ${className}`}>
+      className={`mt-6 w-full max-w-3xl rounded-[1.5rem] border bg-background p-3 shadow-2xl shadow-black/10 sm:mt-8 ${className}`}>
       <div className="grid gap-3 lg:grid-cols-[1fr_0.85fr_auto] lg:items-end">
         {/* =====================================================
             JOB SEARCH

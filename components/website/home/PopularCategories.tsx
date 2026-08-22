@@ -101,7 +101,7 @@ export default function PopularCategories() {
 
       <div className="absolute bottom-0 right-[15%] -z-10 size-[360px] translate-x-1/2 rounded-full bg-primary/[0.045] blur-[130px]" />
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-16 lg:px-8 lg:py-20">
+      <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:py-16 lg:px-8 lg:py-20">
         {/* =========================================================
             TRUSTED COMPANIES — TOP
         ========================================================= */}
@@ -112,7 +112,7 @@ export default function PopularCategories() {
             CATEGORIES HEADER
         ========================================================= */}
 
-        <div className="mt-16 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between lg:mt-20">
+        <div className="mt-10 flex flex-col gap-4 sm:mt-14 sm:flex-row sm:items-end sm:justify-between lg:mt-16">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-xs font-semibold text-primary shadow-sm">
               <Sparkles className="size-3.5" />
@@ -140,7 +140,7 @@ export default function PopularCategories() {
             DESKTOP — 3 × 3
         ========================================================= */}
 
-        <div className="mt-10 hidden lg:block">
+        <div className="mt-8 hidden lg:block">
           <motion.div
             key={desktopPage}
             initial={{

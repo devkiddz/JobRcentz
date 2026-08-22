@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, type Variants } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
 import DashboardSidebar from './DashboardSidebar';
 import DashboardHeader from './DashboardHeader';
@@ -63,22 +64,30 @@ const contentVariants: Variants = {
 };
 
 export default function DashboardShell({ children, user }: DashboardShellProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia('(min-width: 1024px)').matches) {
+      setSidebarOpen(true);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <motion.div variants={sidebarVariants} initial="hidden" animate="visible">
-        <DashboardSidebar user={user} />
+        <DashboardSidebar user={user} open={sidebarOpen} onOpenChange={setSidebarOpen} />
       </motion.div>
 
-      <div className="lg:pl-64">
+      <div className={sidebarOpen ? 'transition-[padding] duration-200 lg:pl-64' : 'transition-[padding] duration-200'}>
         <motion.div variants={headerVariants} initial="hidden" animate="visible">
-          <DashboardHeader user={user} />
+          <DashboardHeader user={user} sidebarOpen={sidebarOpen} onSidebarToggle={() => setSidebarOpen(open => !open)} />
         </motion.div>
 
         <motion.main
           variants={contentVariants}
           initial="hidden"
           animate="visible"
-          className="min-h-[calc(100vh-4rem)] p-4 sm:p-6 lg:p-8">
+          className="min-h-[calc(100vh-4rem)]">
           {children}
         </motion.main>
       </div>

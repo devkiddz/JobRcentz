@@ -8,7 +8,7 @@ import type { CurrentUser } from '@/server/actions/getCurrentUser';
 import ActionButton from './ActionButton';
 import LogoContainer from './LogoContainer';
 import MobileNavSheet from './MobileNavSheet';
-import { publicNavigation } from './navigation';
+import { publicNavigation, type NavigationItem } from './navigation';
 import NotificationButton from './NotificationButton';
 
 interface NavBarProps {
@@ -17,14 +17,17 @@ interface NavBarProps {
 
 export default function NavBar({ user }: NavBarProps) {
   const pathname = usePathname();
+  const navigation: NavigationItem[] = user
+    ? [{ href: '/dashboard', label: 'Dashboard' }, ...publicNavigation]
+    : publicNavigation;
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/70 backdrop-blur-3xl">
-      <nav className="mx-auto flex min-h-16 w-full max-w-7xl items-center gap-1 pl-4">
+      <nav className="mx-auto flex min-h-16 w-full max-w-7xl items-center gap-2 px-4 sm:px-6 lg:px-8">
         {/* Mobile navigation */}
         <div className="flex items-center justify-start gap-0">
           <div className="md:hidden">
-            <MobileNavSheet navigation={publicNavigation} />
+            <MobileNavSheet navigation={navigation} />
           </div>
 
           {/* Brand */}
@@ -34,7 +37,7 @@ export default function NavBar({ user }: NavBarProps) {
         </div>
         {/* Desktop navigation */}
         <div className="hidden flex-1 items-center justify-center gap-6 md:flex">
-          {publicNavigation.map(item => {
+          {navigation.map(item => {
             const isActive =
               pathname === item.href || (item.href !== '/jobs' && pathname.startsWith(`${item.href}/`));
 

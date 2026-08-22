@@ -112,11 +112,7 @@ export default function UserHelperSheet({ user }: UserHelperSheetProps) {
 
   const roleAction = getRoleAction(user.role);
 
-  const quickAccess = [
-    ...commonAccountNavigation.slice(0, 3),
-    ...(roleAction ? [roleAction] : []),
-    commonAccountNavigation[3]
-  ];
+  const quickAccess = [...commonAccountNavigation, ...(roleAction ? [roleAction] : [])];
 
   async function handleSignOut() {
     if (isSigningOut) return;

@@ -105,13 +105,13 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
           CONTENT
       ========================================================= */}
 
-      <div className="relative mx-auto w-full max-w-7xl px-4 py-24 sm:py-28 lg:px-8 lg:py-32">
+      <div className="relative mx-auto w-full max-w-7xl px-4 py-16 sm:py-20 lg:px-8 lg:py-24">
         {/* =======================================================
             HEADER
         ======================================================= */}
 
         <FadeIn>
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
               {/* Section badge */}
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/90 px-3 py-1.5 text-xs font-semibold text-primary shadow-sm backdrop-blur-sm">
@@ -161,8 +161,8 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
 
         {visibleJobs.length === 0 ? (
           <FadeIn>
-            <div className="mt-12 overflow-hidden rounded-[1.75rem] border bg-card shadow-sm">
-              <div className="relative px-6 py-16 text-center sm:px-10">
+            <div className="mt-8 overflow-hidden rounded-[1.75rem] border bg-card shadow-sm">
+              <div className="relative px-5 py-12 text-center sm:px-8 sm:py-14">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.035] via-transparent to-transparent" />
 
                 <div className="relative">
@@ -188,11 +188,11 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
             </div>
           </FadeIn>
         ) : (
-          <StaggerContainer className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <StaggerContainer className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {visibleJobs.map(job => (
               <StaggerItem key={job.id}>
                 <Link href={`/jobs/${job.id}`} className="group block h-full">
-                  <article className="relative flex h-full min-h-[355px] flex-col overflow-hidden rounded-[1.75rem] border bg-card p-5 shadow-sm transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/[0.07]">
+                  <article className="relative flex h-full min-h-[310px] flex-col overflow-hidden rounded-[1.5rem] border bg-card p-4 shadow-sm transition-all duration-500 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/[0.07] sm:p-5">
                     {/* Card hover atmosphere */}
                     <div className="pointer-events-none absolute -right-16 -top-16 size-40 rounded-full bg-primary/[0.045] opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-100" />
 
@@ -228,7 +228,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                         DESCRIPTION
                     ================================================= */}
 
-                    <p className="relative mt-5 line-clamp-3 text-sm leading-6 text-muted-foreground">
+                    <p className="relative mt-4 line-clamp-3 text-sm leading-6 text-muted-foreground">
                       {job.description}
                     </p>
 
@@ -236,7 +236,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                         META
                     ================================================= */}
 
-                    <div className="relative mt-5 flex flex-wrap gap-2">
+                    <div className="relative mt-4 flex flex-wrap gap-2">
                       <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                         {formatLabel(job.workMode)}
                       </span>
@@ -259,7 +259,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                     ================================================= */}
 
                     {job.skills.length > 0 && (
-                      <div className="relative mt-auto flex flex-wrap gap-1.5 pt-6">
+                        <div className="relative mt-auto flex flex-wrap gap-1.5 pt-5">
                         {job.skills.slice(0, 4).map(skill => (
                           <span
                             key={skill}
@@ -276,7 +276,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                         FOOTER
                     ================================================= */}
 
-                    <div className="relative mt-5 flex items-center justify-between border-t pt-4">
+                    <div className="relative mt-4 flex items-center justify-between border-t pt-3">
                       <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/50">
                         Opportunity
                       </span>
@@ -299,7 +299,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
 
         {visibleJobs.length > 0 && (
           <FadeIn>
-            <div className="mt-10 flex justify-center">
+            <div className="mt-8 flex justify-center">
               <Link
                 href="/jobs"
                 className="group inline-flex items-center gap-2 rounded-full border bg-background px-5 py-2.5 text-sm font-semibold shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:text-primary hover:shadow-md">

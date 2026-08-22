@@ -7,37 +7,25 @@ export interface NavigationItem {
   label: string;
 }
 
-export interface RoleAction extends NavigationItem {
-  roles: UserRole[];
-}
-
 /**
- * Public navigation shared by desktop and mobile.
- *
- * Role-specific actions such as "Post a Job" and
- * "My Portfolio" intentionally do not belong here.
+ * Public routes that exist for every visitor. Account-specific destinations
+ * belong in the account menu, so the header never advertises dead links.
  */
 export const publicNavigation: NavigationItem[] = [
   {
     href: '/jobs',
     label: 'Find Jobs'
-  },
-  {
-    href: '/professionals',
-    label: 'Professionals'
-  },
-  {
-    href: '/projects',
-    label: 'Projects'
   }
 ];
 
-/**
- * Actions available to specific account roles.
- */
+export interface RoleAction extends NavigationItem {
+  roles: UserRole[];
+}
+
+/** Actions available to specific account roles. */
 export const roleActions: RoleAction[] = [
   {
-    href: '/portfolio',
+    href: '/dashboard/portfolio',
     label: 'My Portfolio',
     roles: ['JOB_SEEKER']
   },
@@ -48,26 +36,11 @@ export const roleActions: RoleAction[] = [
   }
 ];
 
-/**
- * Shared account navigation.
- */
+/** Shared, implemented destinations for the account menu. */
 export const commonAccountNavigation: NavigationItem[] = [
-  {
-    href: '/dashboard',
-    label: 'Dashboard'
-  },
-  {
-    href: '/dashboard/profile',
-    label: 'Profile'
-  },
-  {
-    href: '/jobs',
-    label: 'Find Jobs'
-  },
-  {
-    href: '/settings',
-    label: 'Settings'
-  }
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/dashboard/profile', label: 'Profile' },
+  { href: '/jobs', label: 'Find Jobs' }
 ];
 
 export function getRoleAction(role?: UserRole | null) {
