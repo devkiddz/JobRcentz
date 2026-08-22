@@ -6,11 +6,8 @@ import { useRouter } from 'next/navigation';
 import {
   BriefcaseBusiness,
   FilePlus2,
-  FolderKanban,
-  LayoutDashboard,
   Loader2,
   LogOut,
-  Settings,
   UserRound
 } from 'lucide-react';
 
@@ -28,7 +25,8 @@ import {
 } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
-import { commonAccountNavigation, getRoleAction } from './navigation';
+import { getRoleAction } from './navigation';
+import { getDashboardNavigation } from '@/server/actions/onboarding/navigation/dashboard-navigation';
 
 export interface UserHelperUser {
   id?: string;
@@ -74,35 +72,11 @@ function getRoleLabel(role?: UserHelperUser['role']) {
   }
 }
 
-function getNavigationIcon(label: string) {
-  switch (label) {
-    case 'Dashboard':
-      return LayoutDashboard;
-
-    case 'Profile':
-      return UserRound;
-
-    case 'Find Jobs':
-      return BriefcaseBusiness;
-
-    case 'My Portfolio':
-      return FolderKanban;
-
-    case 'Post a Job':
-      return FilePlus2;
-
-    case 'Settings':
-      return Settings;
-
-    default:
-      return BriefcaseBusiness;
-  }
-}
-
 export default function UserHelperSheet({ user }: UserHelperSheetProps) {
   const router = useRouter();
 
   const [isSigningOut, setIsSigningOut] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
 
   const displayName = user.name?.trim() || 'User';
   const initials = getInitials(displayName);
@@ -111,8 +85,11 @@ export default function UserHelperSheet({ user }: UserHelperSheetProps) {
   const profileImage = user.profileImage ?? user.image ?? undefined;
 
   const roleAction = getRoleAction(user.role);
-
-  const quickAccess = [...commonAccountNavigation, ...(roleAction ? [roleAction] : [])];
+  const dashboardLinks = user.role ? getDashboardNavigation(user.role).flatMap(group => group.items) : [];
+  const quickAccess = [
+    ...dashboardLinks,
+    ...(roleAction ? [{ ...roleAction, icon: roleAction.label === 'Post a Job' ? FilePlus2 : BriefcaseBusiness }] : [])
+  ].filter((item, index, items) => items.findIndex(candidate => candidate.href === item.href) === index);
 
   async function handleSignOut() {
     if (isSigningOut) return;
@@ -137,7 +114,7 @@ export default function UserHelperSheet({ user }: UserHelperSheetProps) {
   }
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       {/* Account trigger */}
       <SheetTrigger
         type="button"
@@ -201,12 +178,13 @@ export default function UserHelperSheet({ user }: UserHelperSheetProps) {
             </p>
 
             {quickAccess.map(item => {
-              const Icon = getNavigationIcon(item.label);
+              const Icon = item.icon;
 
               return (
                 <Link
                   key={`${item.href}-${item.label}`}
                   href={item.href}
+                  onClick={() => setOpen(false)}
                   className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors hover:bg-muted">
                   <Icon className="size-4 shrink-0" />
 
