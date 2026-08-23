@@ -1,33 +1,33 @@
 'use client';
 
-import { useActionState, useEffect } from 'react';
-import { ArrowUpRight, Globe, Sparkles } from 'lucide-react';
+import { useActionState } from 'react';
+import { ArrowUpRight, Globe, Plus, Sparkles } from 'lucide-react';
 
 import { createPortfolioProject } from '@/server/actions/dashboard/portfolio/createPortfolioProject';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-
 import { SocialIcon } from '@/components/icons/SocialIcons';
 
 interface PortfolioProjectFormProps {
-  onSuccess?: () => void;
+  compact?: boolean;
 }
 
-export default function PortfolioProjectForm({ onSuccess }: PortfolioProjectFormProps) {
+export default function PortfolioProjectForm({ compact = false }: PortfolioProjectFormProps) {
   const [state, action, pending] = useActionState(createPortfolioProject, null);
 
-  useEffect(() => {
-    if (state?.success) {
-      onSuccess?.();
-    }
-  }, [state?.success, onSuccess]);
+  if (compact) {
+    return (
+      <Button type="button" onClick={() => document.getElementById('portfolio-title')?.focus()}>
+        <Plus className="size-4" />
+        Add project
+      </Button>
+    );
+  }
 
   return (
     <form action={action} className="space-y-6">
-      {/* Project details */}
-
       <div>
         <p className="text-sm font-semibold">Project details</p>
 
@@ -36,8 +36,6 @@ export default function PortfolioProjectForm({ onSuccess }: PortfolioProjectForm
         </p>
       </div>
 
-      {/* Title */}
-
       <div className="space-y-2">
         <label htmlFor="portfolio-title" className="text-sm font-medium">
           Project title
@@ -45,8 +43,6 @@ export default function PortfolioProjectForm({ onSuccess }: PortfolioProjectForm
 
         <Input id="portfolio-title" name="title" required placeholder="e.g. Job Rcentz" />
       </div>
-
-      {/* Description */}
 
       <div className="space-y-2">
         <label htmlFor="portfolio-description" className="text-sm font-medium">
@@ -61,8 +57,6 @@ export default function PortfolioProjectForm({ onSuccess }: PortfolioProjectForm
           placeholder="What did you build, what problem did it solve, and what was your contribution?"
         />
       </div>
-
-      {/* Category + Skills */}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
@@ -84,8 +78,6 @@ export default function PortfolioProjectForm({ onSuccess }: PortfolioProjectForm
         </div>
       </div>
 
-      {/* Preview information */}
-
       <div className="rounded-xl border bg-muted/30 p-4">
         <div className="flex items-start gap-3">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -96,14 +88,12 @@ export default function PortfolioProjectForm({ onSuccess }: PortfolioProjectForm
             <p className="text-sm font-medium">Project preview</p>
 
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Add your live project URL and we can use it later to generate a richer visual preview for your
-              portfolio card.
+              Add your live project URL and we’ll use it later to generate a visual preview for your portfolio
+              card.
             </p>
           </div>
         </div>
       </div>
-
-      {/* URLs */}
 
       <div className="space-y-4">
         <div className="space-y-2">
@@ -122,7 +112,7 @@ export default function PortfolioProjectForm({ onSuccess }: PortfolioProjectForm
 
         <div className="space-y-2">
           <label htmlFor="portfolio-github-url" className="flex items-center gap-2 text-sm font-medium">
-            <SocialIcon platform="github" className="size-4 text-muted-foreground" />
+            <SocialIcon platform="github" className="size-4" />
             GitHub repository
           </label>
 
@@ -135,23 +125,17 @@ export default function PortfolioProjectForm({ onSuccess }: PortfolioProjectForm
         </div>
       </div>
 
-      {/* Error */}
-
       {state?.error && (
         <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2">
           <p className="text-sm text-destructive">{state.error}</p>
         </div>
       )}
 
-      {/* Success */}
-
       {state?.success && (
         <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
           <p className="text-sm text-emerald-600 dark:text-emerald-400">Project created successfully.</p>
         </div>
       )}
-
-      {/* Submit */}
 
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? 'Creating project…' : 'Create project'}

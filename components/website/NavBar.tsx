@@ -24,7 +24,7 @@ export default function NavBar({ user, unreadNotificationCount = 0 }: NavBarProp
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/70 backdrop-blur-3xl">
-      <nav className="mx-auto flex min-h-16 w-full max-w-[77%] items-center gap-4 px-4 sm:px-6 lg:px-8">
+      <nav className="mx-auto flex min-h-16 w-full md:max-w-[77%] items-center gap-4 px-4 sm:px-6 lg:px-8">
         {/* =========================================================
             BRAND
         ========================================================= */}

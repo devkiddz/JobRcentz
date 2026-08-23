@@ -37,6 +37,7 @@ model User {
   projectLikes             PortfolioLike[]
   projectRatings           PortfolioRating[]
   profileRatingsGiven      ProfileRating[]           @relation("ProfileRatingsGiven")
+  profileViewsMade         JobSeekerProfileView[]    @relation("ProfileViewViewer")
   savedJobs                SavedJob[]
   sessions                 Session[]
   subscriptions            Subscription[]
@@ -66,6 +67,7 @@ model JobSeekerProfile {
   linkedin             String?
   github               String?
   x                    String?
+  website              String?
   profilePhotoUrl      String?
   profilePhotoPublicId String?
   cvUrl                String?
@@ -89,6 +91,7 @@ model JobSeekerProfile {
   portfolioProjects PortfolioProject[]
   ratings           ProfileRating[]
   savedJobs         SavedJob[]
+  profileViewEvents JobSeekerProfileView[]
 
   @@index([location])
   @@index([currentRole])
@@ -98,6 +101,22 @@ model JobSeekerProfile {
   @@index([isAvailable])
   @@index([averageRating])
   @@map("job_seeker_profile")
+}
+
+model JobSeekerProfileView {
+  id        String   @id @default(cuid())
+  profileId String
+  viewerId  String?
+  viewedAt  DateTime @default(now())
+
+  profile JobSeekerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  viewer  User?            @relation("ProfileViewViewer", fields: [viewerId], references: [id], onDelete: SetNull)
+
+  @@index([profileId])
+  @@index([profileId, viewedAt])
+  @@index([viewerId])
+  @@index([viewedAt])
+  @@map("job_seeker_profile_view")
 }
 
 model JobSeekerGalleryImage {
@@ -174,15 +193,20 @@ model CompanyGalleryImage {
 }
 
 model PortfolioProject {
-  id            String            @id @default(cuid())
-  profileId     String
-  title         String
-  slug          String            @unique
-  description   String
-  category      String?
-  skills        String[]          @default([])
-  projectUrl    String?
-  githubUrl     String?
+  id                 String                  @id @default(cuid())
+  profileId          String
+  title              String
+  slug               String                  @unique
+  description        String
+  category           String?
+  skills             String[]                @default([])
+  projectUrl         String?
+  githubUrl          String?
+  coverImageUrl      String?
+  coverImagePublicId String?
+  previewImageUrl    String?
+  previewImageSource PortfolioPreviewSource?
+
   visibility    ProjectVisibility @default(PUBLIC)
   status        ProjectStatus     @default(DRAFT)
   featured      Boolean           @default(false)
@@ -410,22 +434,6 @@ model JobInvitation {
  * |--------------------------------------------------------------------------
  * | INTERVIEW DOMAIN
  * |--------------------------------------------------------------------------
- * |
- * | Interview is the central workspace for the hiring-stage experience.
- * |
- * | It supports:
- * | - in-person interviews
- * | - online interviews
- * | - AI interviews
- * | - future facial/video verification
- * | - interview tasks
- * | - interview notes
- * | - evaluations
- * | - scheduling/rescheduling
- * | - meeting providers
- * | - interview lifecycle
- * | - future interview recordings/artifacts
- * |
  */
 
 model Interview {
@@ -996,6 +1004,12 @@ model Verification {
   @@map("verification")
 }
 
+/**
+ * |--------------------------------------------------------------------------
+ * | ENUMS
+ * |--------------------------------------------------------------------------
+ */
+
 enum UserRole {
   JOB_SEEKER
   EMPLOYER
@@ -1051,12 +1065,6 @@ enum ApplicationStatus {
   HIRED
   WITHDRAWN
 }
-
-/**
- * |--------------------------------------------------------------------------
- * | INTERVIEW ENUMS
- * |--------------------------------------------------------------------------
- */
 
 enum InterviewType {
   IN_PERSON
@@ -1154,12 +1162,6 @@ enum InterviewEventType {
   MEETING_UPDATED
 }
 
-/**
- * |--------------------------------------------------------------------------
- * | GENERAL ENUMS
- * |--------------------------------------------------------------------------
- */
-
 enum ProjectVisibility {
   PUBLIC
   UNLISTED
@@ -1170,6 +1172,12 @@ enum ProjectStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+}
+
+enum PortfolioPreviewSource {
+  UPLOAD
+  GENERATED
+  EXTERNAL
 }
 
 enum MediaType {
