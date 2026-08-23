@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+
 import { CalendarDays, CheckCircle2, Clock3, FileText, MapPin, XCircle } from 'lucide-react';
 
 import { getJobSeekerApplications } from '@/server/actions/dashboard/jobseeker/getJobSeekerApplications';
@@ -59,6 +60,7 @@ function statusClasses(status: string) {
 
 export default function ApplicationsTab() {
   const [applications, setApplications] = useState<JobSeekerApplicationsData>([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,11 +93,25 @@ export default function ApplicationsTab() {
   }, []);
 
   if (loading) {
-    return <TabLoading label="Loading your applications..." />;
+    return (
+      <div className="flex min-h-64 items-center justify-center rounded-2xl border bg-muted/20">
+        <div className="text-center">
+          <div className="mx-auto size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
+
+          <p className="mt-3 text-sm text-muted-foreground">Loading your applications...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <TabError message={error} />;
+    return (
+      <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-6">
+        <p className="text-sm font-medium text-destructive">Unable to load applications.</p>
+
+        <p className="mt-1 text-sm text-destructive/80">{error}</p>
+      </div>
+    );
   }
 
   return (
@@ -165,10 +181,13 @@ export default function ApplicationsTab() {
                 </div>
 
                 <div
-                  className={`inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
-                    application.status
-                  )}`}>
+                  className={[
+                    'inline-flex w-fit shrink-0 items-center gap-1.5',
+                    'rounded-full px-2.5 py-1 text-xs font-semibold',
+                    statusClasses(application.status)
+                  ].join(' ')}>
                   {statusIcon(application.status)}
+
                   {formatLabel(application.status)}
                 </div>
               </div>
@@ -189,27 +208,5 @@ export default function ApplicationsTab() {
         </div>
       )}
     </section>
-  );
-}
-
-function TabLoading({ label }: { label: string }) {
-  return (
-    <div className="flex min-h-64 items-center justify-center rounded-2xl border bg-muted/20">
-      <div className="text-center">
-        <div className="mx-auto size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
-
-        <p className="mt-3 text-sm text-muted-foreground">{label}</p>
-      </div>
-    </div>
-  );
-}
-
-function TabError({ message }: { message: string }) {
-  return (
-    <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-6">
-      <p className="text-sm font-medium text-destructive">Unable to load this section.</p>
-
-      <p className="mt-1 text-sm text-destructive/80">{message}</p>
-    </div>
   );
 }
