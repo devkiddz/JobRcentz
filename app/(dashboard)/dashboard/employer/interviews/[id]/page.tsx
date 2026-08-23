@@ -323,7 +323,11 @@ export default async function EmployerInterviewDetailPage({ params }: { params: 
                         )}
                       </div>
 
-                      <InterviewTaskActions taskId={task.id} status={task.status} />
+                      <InterviewTaskActions
+                        taskId={task.id}
+                        interviewId={interview.id}
+                        status={task.status}
+                      />
                     </div>
 
                     <div className="flex flex-wrap gap-4 text-[11px] text-muted-foreground">
