@@ -1,16 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+
 import { FolderKanban, Plus, Sparkles } from 'lucide-react';
 
-import type { JobSeekerDashboardData } from '@/server/actions/dashboard/jobseeker/getJobSeekerDashboard';
-
 import { Button } from '@/components/ui/button';
-import PortfolioProjectForm from '@/app/(dashboard)/dashboard/portfolio/PortfolioProjectForm';
-import PortfolioProjectCard from '@/features/jobseeker/portfolio/components/PortfolioProjectCard';
 
-// import PortfolioProjectForm from '@/components/dashboard/portfolio/PortfolioProjectForm';
-// import PortfolioProjectCard from '@/components/dashboard/portfolio/PortfolioProjectCard';
+import PortfolioProjectCard from '@/features/jobseeker/portfolio/components/PortfolioProjectCard';
+import PortfolioProjectForm from '@/features/jobseeker/portfolio/components/PortfolioProjectForm';
+
+import type { JobSeekerDashboardData } from '@/server/actions/dashboard/jobseeker/getJobSeekerDashboard';
 
 interface PortfolioTabProps {
   dashboard: JobSeekerDashboardData;
@@ -19,12 +18,10 @@ interface PortfolioTabProps {
 export default function PortfolioTab({ dashboard }: PortfolioTabProps) {
   const [showForm, setShowForm] = useState(false);
 
-  const projects = dashboard.portfolioProjects;
+  const { portfolioProjects } = dashboard;
 
   return (
-    <div className="space-y-7">
-      {/* Header */}
-
+    <section className="space-y-7">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -49,8 +46,6 @@ export default function PortfolioTab({ dashboard }: PortfolioTabProps) {
         </Button>
       </div>
 
-      {/* Portfolio creation form */}
-
       {showForm && (
         <div className="rounded-2xl border bg-muted/20 p-5 sm:p-6">
           <div className="mb-6 flex items-start gap-3">
@@ -67,13 +62,11 @@ export default function PortfolioTab({ dashboard }: PortfolioTabProps) {
             </div>
           </div>
 
-          <PortfolioProjectForm onSuccess={() => setShowForm(false)} />
+          <PortfolioProjectForm />
         </div>
       )}
 
-      {/* Empty state */}
-
-      {projects.length === 0 && !showForm && (
+      {portfolioProjects.length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-muted/10 px-6 py-14 text-center">
           <div className="mx-auto flex size-14 items-center justify-center rounded-2xl border bg-background shadow-sm">
             <FolderKanban className="size-6 text-muted-foreground" />
@@ -90,29 +83,23 @@ export default function PortfolioTab({ dashboard }: PortfolioTabProps) {
             Add your first project
           </Button>
         </div>
-      )}
-
-      {/* Projects */}
-
-      {projects.length > 0 && (
+      ) : (
         <div className="space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold">Projects</p>
+          <div>
+            <p className="text-sm font-semibold">Projects</p>
 
-              <p className="text-xs text-muted-foreground">
-                {projects.length} {projects.length === 1 ? 'project' : 'projects'}
-              </p>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              {portfolioProjects.length} {portfolioProjects.length === 1 ? 'project' : 'projects'}
+            </p>
           </div>
 
           <div className="grid gap-5 lg:grid-cols-2">
-            {projects.map(project => (
+            {portfolioProjects.map(project => (
               <PortfolioProjectCard key={project.id} project={project} />
             ))}
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }

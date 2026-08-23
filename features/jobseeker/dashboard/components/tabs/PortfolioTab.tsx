@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { FolderKanban, Plus, Sparkles } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -8,41 +8,23 @@ import { Button } from '@/components/ui/button';
 import PortfolioProjectForm from '@/features/jobseeker/portfolio/components/PortfolioProjectForm';
 import PortfolioProjectCard from '@/features/jobseeker/portfolio/components/PortfolioProjectCard';
 
-import { getJobSeekerPortfolio } from '@/server/actions/dashboard/jobseeker/getJobSeekerPortfolio';
+import type { JobSeekerDashboardData } from '@/server/actions/dashboard/jobseeker/getJobSeekerDashboard';
 
-import type { JobSeekerPortfolioData } from '@/server/actions/dashboard/jobseeker/getJobSeekerPortfolio';
+interface PortfolioTabProps {
+  dashboard: JobSeekerDashboardData;
+}
 
-export default function PortfolioTab() {
-  const [projects, setProjects] = useState<JobSeekerPortfolioData>([]);
+export default function PortfolioTab({ dashboard }: PortfolioTabProps) {
   const [showForm, setShowForm] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadPortfolio() {
-      try {
-        const data = await getJobSeekerPortfolio();
-
-        if (mounted) {
-          setProjects(data);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadPortfolio();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const { portfolioProjects } = dashboard;
 
   return (
     <section className="space-y-7">
+      {/* =========================================================
+          HEADER
+      ========================================================= */}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -67,6 +49,10 @@ export default function PortfolioTab() {
         </Button>
       </div>
 
+      {/* =========================================================
+          CREATE PROJECT
+      ========================================================= */}
+
       {showForm && (
         <div className="rounded-2xl border bg-muted/20 p-5 sm:p-6">
           <div className="mb-6 flex items-start gap-3">
@@ -87,13 +73,11 @@ export default function PortfolioTab() {
         </div>
       )}
 
-      {loading ? (
-        <div className="grid gap-5 lg:grid-cols-2">
-          {[1, 2].map(item => (
-            <div key={item} className="h-96 animate-pulse rounded-2xl border bg-muted/30" />
-          ))}
-        </div>
-      ) : projects.length === 0 && !showForm ? (
+      {/* =========================================================
+          EMPTY STATE
+      ========================================================= */}
+
+      {portfolioProjects.length === 0 && !showForm ? (
         <div className="rounded-2xl border border-dashed bg-muted/10 px-6 py-14 text-center">
           <div className="mx-auto flex size-14 items-center justify-center rounded-2xl border bg-background shadow-sm">
             <FolderKanban className="size-6 text-muted-foreground" />
@@ -111,17 +95,21 @@ export default function PortfolioTab() {
           </Button>
         </div>
       ) : (
+        /* =========================================================
+           PROJECTS
+        ========================================================= */
+
         <div className="space-y-5">
           <div>
             <p className="text-sm font-semibold">Projects</p>
 
             <p className="text-xs text-muted-foreground">
-              {projects.length} {projects.length === 1 ? 'project' : 'projects'}
+              {portfolioProjects.length} {portfolioProjects.length === 1 ? 'project' : 'projects'}
             </p>
           </div>
 
           <div className="grid gap-5 lg:grid-cols-2">
-            {projects.map(project => (
+            {portfolioProjects.map(project => (
               <PortfolioProjectCard key={project.id} project={project} />
             ))}
           </div>

@@ -4,8 +4,8 @@ import type { JobSeekerDashboardData } from '@/server/actions/dashboard/jobseeke
 
 import type { JobSeekerTab } from './JobSeekerDashboard';
 
-import ApplicationsTab from './tabs/ApplicationsTab';
 import AboutTab from './tabs/AboutTab';
+import ApplicationsTab from './tabs/ApplicationsTab';
 import GalleryTab from './tabs/GalleryTab';
 import JobsTab from './tabs/JobsTab';
 import PortfolioTab from './tabs/PortfolioTab';
@@ -17,26 +17,19 @@ interface JobSeekerTabContentProps {
 }
 
 export default function JobSeekerTabContent({ dashboard, activeTab }: JobSeekerTabContentProps) {
-  switch (activeTab) {
-    case 'overview':
-      return <OverviewTab dashboard={dashboard} />;
+  return (
+    <section key={activeTab} className="min-w-0 animate-in fade-in-0 slide-in-from-right-2 duration-200">
+      {activeTab === 'overview' && <OverviewTab dashboard={dashboard} />}
 
-    case 'applications':
-      return <ApplicationsTab />;
+      {activeTab === 'applications' && <ApplicationsTab />}
 
-    case 'jobs':
-      return <JobsTab />;
+      {activeTab === 'jobs' && <JobsTab />}
 
-    case 'portfolio':
-      return <PortfolioTab />;
+      {activeTab === 'portfolio' && <PortfolioTab dashboard={dashboard} />}
 
-    case 'about':
-      return <AboutTab dashboard={dashboard} />;
+      {activeTab === 'about' && <AboutTab dashboard={dashboard} />}
 
-    case 'gallery':
-      return <GalleryTab />;
-
-    default:
-      return null;
-  }
+      {activeTab === 'gallery' && <GalleryTab />}
+    </section>
+  );
 }

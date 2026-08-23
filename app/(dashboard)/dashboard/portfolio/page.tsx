@@ -17,6 +17,7 @@ export default async function PortfolioPage() {
     where: {
       profileId: state.jobSeeker.id
     },
+
     orderBy: [
       {
         featured: 'desc'
@@ -25,6 +26,7 @@ export default async function PortfolioPage() {
         updatedAt: 'desc'
       }
     ],
+
     select: {
       id: true,
       title: true,
@@ -52,8 +54,10 @@ export default async function PortfolioPage() {
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-8">
-      {/* Header */}
-      <header className="flex flex-col gap-5 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
+      {/* =========================================================
+          HEADER
+      ========================================================= */}
+      <header className="border-b pb-6">
         <div className="min-w-0">
           <p className="text-sm font-medium text-primary">Professional profile</p>
 
@@ -63,11 +67,11 @@ export default async function PortfolioPage() {
             Showcase the work, skills, and projects you want employers to discover.
           </p>
         </div>
-
-        <PortfolioProjectForm compact />
       </header>
 
-      {/* Summary */}
+      {/* =========================================================
+          SUMMARY
+      ========================================================= */}
       <section className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border bg-card p-4">
           <p className="text-xs font-medium text-muted-foreground">Total projects</p>
@@ -88,9 +92,13 @@ export default async function PortfolioPage() {
         </div>
       </section>
 
-      {/* Main content */}
+      {/* =========================================================
+          MAIN CONTENT
+      ========================================================= */}
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        {/* Projects */}
+        {/* =======================================================
+            PROJECTS
+        ======================================================= */}
         <div className="min-w-0">
           {projects.length > 0 ? (
             <div className="grid gap-5 md:grid-cols-2">
@@ -113,7 +121,9 @@ export default async function PortfolioPage() {
           )}
         </div>
 
-        {/* Create project */}
+        {/* =======================================================
+            CREATE PROJECT
+        ======================================================= */}
         <aside className="min-w-0">
           <div className="sticky top-6 rounded-2xl border bg-card p-5 shadow-sm">
             <div className="mb-5">

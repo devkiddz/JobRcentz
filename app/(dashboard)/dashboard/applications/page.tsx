@@ -5,9 +5,7 @@ import { getJobSeekerApplications } from '@/server/actions/dashboard/jobseeker/g
 import ApplicationCard from '@/components/dashboard/ApplicationCard';
 
 export default async function JobSeekerApplicationsPage() {
-  const dashboard = await getJobSeekerApplications();
-
-  const applications = dashboard.applications;
+  const applications = await getJobSeekerApplications();
 
   const total = applications.length;
 

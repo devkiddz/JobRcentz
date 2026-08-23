@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 
-import JobSeekerWelcome from './JobSeekerWelcome';
 import JobSeekerTabContent from './JobSeekerTabContent';
+import JobSeekerWelcome from './JobSeekerWelcome';
 
 import type { JobSeekerDashboardData } from '@/server/actions/dashboard/jobseeker/getJobSeekerDashboard';
 
