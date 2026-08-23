@@ -18,6 +18,7 @@ import {
 import type { JobSeekerTab } from './JobSeekerDashboard';
 
 interface JobSeekerWelcomeProps {
+  applicationsCount: number;
   user: {
     id: string;
     name: string;
@@ -94,7 +95,13 @@ const profileTabs: Array<{
   }
 ];
 
-export default function JobSeekerWelcome({ user, profile, activeTab, onTabChange }: JobSeekerWelcomeProps) {
+export default function JobSeekerWelcome({
+  user,
+  profile,
+  activeTab,
+  onTabChange,
+  applicationsCount
+}: JobSeekerWelcomeProps) {
   const displayName = user.name?.trim() || 'Job Seeker';
 
   const profileImage = profile.profilePhotoUrl ?? user.image;
@@ -306,7 +313,7 @@ export default function JobSeekerWelcome({ user, profile, activeTab, onTabChange
                       'min-w-5 rounded-full px-1.5 py-0.5 text-center text-[10px] font-semibold',
                       active ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
                     ].join(' ')}>
-                    {/* Count will be supplied later */}0
+                    {applicationsCount}
                   </span>
                 )}
 

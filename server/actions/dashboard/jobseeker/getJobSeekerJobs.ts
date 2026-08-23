@@ -3,7 +3,7 @@
 import { requireAuth } from '@/server/auth/requireAuth';
 import { prisma } from '@/server/db/prisma';
 
-export async function getJobSeekerApplications() {
+export async function getJobSeekerJobs() {
   const authUser = await requireAuth();
 
   const user = await prisma.user.findUnique({
@@ -12,12 +12,7 @@ export async function getJobSeekerApplications() {
     },
     select: {
       id: true,
-      role: true,
-      jobSeeker: {
-        select: {
-          id: true
-        }
-      }
+      role: true
     }
   });
 
@@ -29,32 +24,25 @@ export async function getJobSeekerApplications() {
     throw new Error('This dashboard is only available to job seekers.');
   }
 
-  if (!user.jobSeeker) {
-    throw new Error('Job seeker profile not found.');
-  }
-
-  const applications = await prisma.application.findMany({
+  const savedJobs = await prisma.savedJob.findMany({
     where: {
-      applicantId: user.id
+      userId: user.id
     },
 
     orderBy: {
-      appliedAt: 'desc'
+      createdAt: 'desc'
     },
 
     select: {
       id: true,
-      status: true,
-      coverLetter: true,
-      cvUrl: true,
-      cvName: true,
-      appliedAt: true,
-      updatedAt: true,
+      createdAt: true,
 
       job: {
         select: {
           id: true,
           title: true,
+          description: true,
+          requirements: true,
           location: true,
           workMode: true,
           employmentType: true,
@@ -63,6 +51,8 @@ export async function getJobSeekerApplications() {
           salaryCurrency: true,
           skills: true,
           status: true,
+          publishedAt: true,
+          expiresAt: true,
 
           company: {
             select: {
@@ -74,40 +64,22 @@ export async function getJobSeekerApplications() {
             }
           }
         }
-      },
-
-      interviews: {
-        orderBy: {
-          scheduledAt: 'asc'
-        },
-
-        select: {
-          id: true,
-          title: true,
-          type: true,
-          status: true,
-          scheduledAt: true,
-          durationMinutes: true,
-          meetingProvider: true,
-          meetingUrl: true,
-          location: true
-        }
       }
     }
   });
 
-  return applications.map(application => ({
-    ...application,
+  return savedJobs.map(savedJob => ({
+    ...savedJob,
 
     job: {
-      ...application.job,
+      ...savedJob.job,
 
-      salaryMin: application.job.salaryMin?.toString() ?? null,
-      salaryMax: application.job.salaryMax?.toString() ?? null
+      salaryMin: savedJob.job.salaryMin?.toString() ?? null,
+      salaryMax: savedJob.job.salaryMax?.toString() ?? null
     }
   }));
 }
 
-export type JobSeekerApplicationsData = Awaited<
-  ReturnType<typeof getJobSeekerApplications>
+export type JobSeekerJobsData = Awaited<
+  ReturnType<typeof getJobSeekerJobs>
 >;

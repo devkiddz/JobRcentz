@@ -18,20 +18,13 @@ export default function JobSeekerDashboard({ dashboard }: JobSeekerDashboardProp
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 py-6 md:px-4 lg:px-8">
-      {/* ============================================================
-          PROFILE HEADER + TABS
-      ============================================================ */}
-
       <JobSeekerWelcome
         user={dashboard.user}
         profile={dashboard.profile}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        applicationsCount={dashboard.stats.applications}
       />
-
-      {/* ============================================================
-          ACTIVE TAB CONTENT
-      ============================================================ */}
 
       <JobSeekerTabContent dashboard={dashboard} activeTab={activeTab} />
     </div>
