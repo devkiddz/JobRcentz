@@ -44,7 +44,7 @@ export default function DashboardHeader({ user, sidebarOpen, onSidebarToggle }: 
   const navigation = getDashboardHeaderNavigation(user.role);
 
   return (
-    <header className="w-full max-w-[87%] border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="w-full md:max-w-[87%] border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <motion.div
         variants={headerContentVariants}
         initial="hidden"
