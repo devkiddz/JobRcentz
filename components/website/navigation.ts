@@ -5,6 +5,8 @@ import {
   Building2,
   CheckSquare,
   FileText,
+  House,
+  Info,
   LayoutDashboard,
   MessageSquare,
   Search,
@@ -25,7 +27,7 @@ export type UserRole = NonNullable<CurrentUser>['role'];
 export interface NavigationItem {
   href: string;
   label: string;
-  icon?: LucideIcon;
+  icon: LucideIcon;
   description?: string;
 }
 
@@ -48,25 +50,50 @@ export interface PageContext {
 }
 
 /* ========================================================================= */
-/* PUBLIC WEBSITE NAVIGATION                                                */
+/* PUBLIC WEBSITE NAVIGATION                                                 */
 /* ========================================================================= */
 
 /**
- * Navigation available to visitors and authenticated users.
+ * Primary navigation available to visitors and authenticated users.
  *
- * Keep the public navigation intentionally small.
+ * Some destinations may initially use placeholder routes while the
+ * corresponding public pages are being developed.
  */
 export const publicNavigation: NavigationItem[] = [
+  {
+    href: '/',
+    label: 'Home',
+    icon: House,
+    description: 'Return to the Job Rcentz homepage.'
+  },
   {
     href: '/jobs',
     label: 'Find Jobs',
     icon: Search,
     description: 'Discover available opportunities.'
+  },
+  {
+    href: '#',
+    label: 'Companies',
+    icon: Building2,
+    description: 'Explore companies hiring on Job Rcentz.'
+  },
+  {
+    href: '#',
+    label: 'About',
+    icon: Info,
+    description: 'Learn more about Job Rcentz.'
+  },
+  {
+    href: '#',
+    label: 'Resources',
+    icon: FileText,
+    description: 'Explore career resources and useful information.'
   }
 ];
 
 /* ========================================================================= */
-/* AUTHENTICATED GLOBAL NAVIGATION                                          */
+/* AUTHENTICATED GLOBAL NAVIGATION                                           */
 /* ========================================================================= */
 
 /**
@@ -229,8 +256,9 @@ export const dashboardHeaderNavigation: Record<UserRole, NavigationItem[]> = {
 
   UNASSIGNED: []
 };
+
 /* ========================================================================= */
-/* ROLE WORKSPACE NAVIGATION                                                */
+/* ROLE WORKSPACE NAVIGATION                                                 */
 /* ========================================================================= */
 
 /**
@@ -486,7 +514,8 @@ export function getDashboardHeaderNavigation(
 /**
  * Central route matching logic.
  *
- * `/dashboard` is intentionally exact so that nested dashboard routes do not
+ * `/` is exact.
+ * `/dashboard` is intentionally exact so nested dashboard routes do not
  * make the Overview/Dashboard item appear active.
  */
 export function isNavigationItemActive(
@@ -495,6 +524,10 @@ export function isNavigationItemActive(
 ): boolean {
   if (href === '/') {
     return pathname === '/';
+  }
+
+  if (href === '#') {
+    return false;
   }
 
   if (href === '/dashboard') {
@@ -515,11 +548,19 @@ export function isNavigationItemActive(
  * Returns navigation for the global website header.
  *
  * Visitors:
+ * - Home
  * - Find Jobs
+ * - Companies
+ * - About
+ * - Resources
  *
  * Authenticated users:
  * - Dashboard
+ * - Home
  * - Find Jobs
+ * - Companies
+ * - About
+ * - Resources
  */
 export function getGlobalNavigation(
   user?: CurrentUser | null
@@ -588,7 +629,7 @@ export function getPageContext(
   ) {
     return {
       title: 'Candidates',
-      description: 'Discover and manage candidates.'
+      description: 'Discover and manage candidate applications.'
     };
   }
 
@@ -731,7 +772,7 @@ export function getPageContext(
   }
 
   /* ----------------------------------------------------------------------- */
-  /* Fallback                                                                 */
+  /* Fallback                                                                */
   /* ----------------------------------------------------------------------- */
 
   return {
