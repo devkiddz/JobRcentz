@@ -7,7 +7,7 @@ import type { CurrentUser } from '@/server/actions/getCurrentUser';
 
 import ActionButton from './ActionButton';
 import LogoContainer from './LogoContainer';
-import { authenticatedNavigation, publicNavigation, type NavigationItem } from './navigation';
+import { getGlobalNavigation, isNavigationItemActive } from './navigation';
 import NotificationButton from './NotificationButton';
 
 interface NavBarProps {
@@ -18,9 +18,7 @@ interface NavBarProps {
 export default function NavBar({ user, unreadNotificationCount = 0 }: NavBarProps) {
   const pathname = usePathname();
 
-  const navigation: NavigationItem[] = user
-    ? [...authenticatedNavigation, ...publicNavigation]
-    : publicNavigation;
+  const navigation = getGlobalNavigation(user);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/70 backdrop-blur-3xl">
@@ -37,8 +35,7 @@ export default function NavBar({ user, unreadNotificationCount = 0 }: NavBarProp
         ========================================================= */}
         <div className="hidden flex-1 items-center justify-center gap-6 md:flex">
           {navigation.map(item => {
-            const isActive =
-              pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));
+            const isActive = isNavigationItemActive(pathname, item.href);
 
             const Icon = item.icon;
 

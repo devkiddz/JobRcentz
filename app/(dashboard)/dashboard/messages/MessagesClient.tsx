@@ -67,6 +67,10 @@ type AvatarProps = {
   size?: 'sm' | 'md';
 };
 
+/* ========================================================================= */
+/* AVATAR                                                                    */
+/* ========================================================================= */
+
 function Avatar({ user, size = 'sm' }: AvatarProps) {
   const [imageFailed, setImageFailed] = useState(false);
 
@@ -103,18 +107,18 @@ function Avatar({ user, size = 'sm' }: AvatarProps) {
           referrerPolicy="no-referrer"
           onError={() => setImageFailed(true)}
         />
+      ) : fallbackValue ? (
+        <span className="text-[10px] font-semibold text-muted-foreground">{initials}</span>
       ) : (
-        <>
-          {fallbackValue ? (
-            <span className="text-[10px] font-semibold text-muted-foreground">{initials}</span>
-          ) : (
-            <UserRound className={`${iconClass} text-muted-foreground`} />
-          )}
-        </>
+        <UserRound className={`${iconClass} text-muted-foreground`} />
       )}
     </div>
   );
 }
+
+/* ========================================================================= */
+/* HELPERS                                                                   */
+/* ========================================================================= */
 
 function formatTime(date: Date) {
   return date.toLocaleTimeString('en-NG', {
@@ -140,6 +144,10 @@ function AttachmentIcon({ mimeType }: { mimeType?: string | null }) {
 
   return <FileText className="size-4" />;
 }
+
+/* ========================================================================= */
+/* COMPONENT                                                                 */
+/* ========================================================================= */
 
 export default function MessagesClient({
   userId,
@@ -170,12 +178,20 @@ export default function MessagesClient({
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  /* ----------------------------------------------------------------------- */
+  /* SELECTED CONVERSATION                                                   */
+  /* ----------------------------------------------------------------------- */
+
   const selectedConversation = useMemo(
     () => conversations.find(conversation => conversation.id === selectedId) ?? null,
     [conversations, selectedId]
   );
 
   const otherUser = selectedConversation?.participants[0]?.user;
+
+  /* ----------------------------------------------------------------------- */
+  /* FILTERED CONVERSATIONS                                                  */
+  /* ----------------------------------------------------------------------- */
 
   const filteredConversations = useMemo(() => {
     const value = query.trim().toLowerCase();
@@ -191,12 +207,20 @@ export default function MessagesClient({
     });
   }, [conversations, query]);
 
+  /* ----------------------------------------------------------------------- */
+  /* REFRESH                                                                 */
+  /* ----------------------------------------------------------------------- */
+
   async function refreshConversation(id: string) {
     const [nextConversations, nextMessages] = await Promise.all([getConversations(), getMessages(id)]);
 
     setConversations(nextConversations);
     setMessages(nextMessages);
   }
+
+  /* ----------------------------------------------------------------------- */
+  /* POLLING                                                                  */
+  /* ----------------------------------------------------------------------- */
 
   useEffect(() => {
     if (!selectedId) {
@@ -231,11 +255,19 @@ export default function MessagesClient({
     };
   }, [selectedId]);
 
+  /* ----------------------------------------------------------------------- */
+  /* AUTO SCROLL                                                              */
+  /* ----------------------------------------------------------------------- */
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
       behavior: 'smooth'
     });
   }, [messages.length]);
+
+  /* ----------------------------------------------------------------------- */
+  /* NOTIFICATIONS                                                            */
+  /* ----------------------------------------------------------------------- */
 
   useEffect(() => {
     if (!selectedId) {
@@ -248,6 +280,10 @@ export default function MessagesClient({
       console.error('Failed to mark message notifications as read:', error);
     });
   }, [selectedId]);
+
+  /* ----------------------------------------------------------------------- */
+  /* COMPOSER                                                                 */
+  /* ----------------------------------------------------------------------- */
 
   function clearComposer() {
     setBody('');
@@ -267,6 +303,10 @@ export default function MessagesClient({
 
     router.replace(`/dashboard/messages?conversationId=${id}`);
   }
+
+  /* ----------------------------------------------------------------------- */
+  /* UPLOAD                                                                   */
+  /* ----------------------------------------------------------------------- */
 
   async function uploadFiles(): Promise<MessageAttachmentInput[]> {
     const uploaded: MessageAttachmentInput[] = [];
@@ -295,6 +335,10 @@ export default function MessagesClient({
 
     return uploaded;
   }
+
+  /* ----------------------------------------------------------------------- */
+  /* SEND / EDIT                                                              */
+  /* ----------------------------------------------------------------------- */
 
   async function submitMessage() {
     if (!selectedId || busy) {
@@ -338,6 +382,10 @@ export default function MessagesClient({
     }
   }
 
+  /* ----------------------------------------------------------------------- */
+  /* DELETE                                                                   */
+  /* ----------------------------------------------------------------------- */
+
   async function removeMessage(id: string) {
     if (busy) {
       return;
@@ -362,6 +410,10 @@ export default function MessagesClient({
       setBusy(false);
     }
   }
+
+  /* ----------------------------------------------------------------------- */
+  /* EDIT / REPLY                                                             */
+  /* ----------------------------------------------------------------------- */
 
   function beginEdit(message: Message) {
     setEditing(message);
@@ -389,6 +441,10 @@ export default function MessagesClient({
     setPreview(attachment);
   }
 
+  /* ========================================================================= */
+  /* REQUESTED USER WITHOUT CONVERSATION                                       */
+  /* ========================================================================= */
+
   if (requestedWith && !requestedConversationId && !selectedId) {
     return (
       <main className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-4xl items-center justify-center p-4 lg:p-8">
@@ -413,10 +469,17 @@ export default function MessagesClient({
     );
   }
 
+  /* ========================================================================= */
+  /* MAIN                                                                      */
+  /* ========================================================================= */
+
   return (
     <main className="mx-auto h-[calc(100vh-4rem)] w-full max-w-[1500px] p-0 sm:p-4 lg:p-6">
       <div className="grid h-full min-h-0 overflow-hidden rounded-none border bg-card shadow-sm sm:rounded-3xl lg:grid-cols-[340px_1fr]">
-        {/* Conversation list */}
+        {/* =================================================================== */}
+        {/* CONVERSATION LIST                                                   */}
+        {/* =================================================================== */}
+
         <aside className={`min-h-0 border-r ${selectedId ? 'hidden lg:flex' : 'flex'} flex-col`}>
           <div className="border-b p-5">
             <div className="flex items-center justify-between">
@@ -496,7 +559,10 @@ export default function MessagesClient({
           </div>
         </aside>
 
-        {/* Conversation */}
+        {/* =================================================================== */}
+        {/* CONVERSATION                                                         */}
+        {/* =================================================================== */}
+
         <section className={`min-h-0 flex-col ${selectedId ? 'flex' : 'hidden lg:flex'}`}>
           {!selectedId || !selectedConversation ? (
             <div className="flex flex-1 items-center justify-center p-8 text-center">
@@ -514,7 +580,10 @@ export default function MessagesClient({
             </div>
           ) : (
             <>
-              {/* Header */}
+              {/* ============================================================= */}
+              {/* HEADER                                                          */}
+              {/* ============================================================= */}
+
               <header className="flex shrink-0 items-center gap-3 border-b bg-card px-4 py-3 sm:px-5">
                 <button
                   type="button"
@@ -543,7 +612,10 @@ export default function MessagesClient({
                 </Button>
               </header>
 
-              {/* Messages */}
+              {/* ============================================================= */}
+              {/* MESSAGES                                                        */}
+              {/* ============================================================= */}
+
               <div className="min-h-0 flex-1 overflow-y-auto bg-muted/[0.14] px-3 py-5 sm:px-6">
                 <div className="mx-auto max-w-3xl space-y-4">
                   {messages.length === 0 && (
@@ -586,20 +658,27 @@ export default function MessagesClient({
                               </p>
                             )}
 
+                            {/* ================================================= */}
+                            {/* MESSAGE BUBBLE                                      */}
+                            {/* ================================================= */}
+
                             <div
                               className={`rounded-2xl border px-3.5 py-2.5 shadow-sm ${
                                 mine
-                                  ? 'rounded-br-md border-primary bg-primary text-white'
-                                  : 'rounded-bl-md bg-card text-foreground'
+                                  ? 'rounded-br-md border-foreground bg-foreground text-background'
+                                  : 'rounded-bl-md border-border bg-card text-foreground'
                               }`}>
-                              {/* Reply preview */}
+                              {/* ------------------------------------------------- */}
+                              {/* REPLY PREVIEW                                     */}
+                              {/* ------------------------------------------------- */}
+
                               {message.replyTo && !deleted && (
                                 <button
                                   type="button"
                                   onClick={() => beginReply(message.replyTo as Message)}
                                   className={`mb-2 block w-full rounded-lg border-l-2 px-2.5 py-1.5 text-left text-xs ${
                                     mine
-                                      ? 'border-white/50 bg-white/10 text-white'
+                                      ? 'border-background/50 bg-background/10 text-background'
                                       : 'border-primary bg-muted'
                                   }`}>
                                   <span className="font-semibold">
@@ -614,7 +693,10 @@ export default function MessagesClient({
                                 </button>
                               )}
 
-                              {/* Body */}
+                              {/* ------------------------------------------------- */}
+                              {/* BODY                                              */}
+                              {/* ------------------------------------------------- */}
+
                               {deleted ? (
                                 <p className="text-sm italic opacity-60">Message deleted</p>
                               ) : (
@@ -623,71 +705,104 @@ export default function MessagesClient({
                                 )
                               )}
 
+                              {/* ------------------------------------------------- */}
+                              {/* ATTACHMENTS                                       */}
+                              {/* ------------------------------------------------- */}
+
                               {/* Attachments */}
                               {!deleted && message.attachments.length > 0 && (
-                                <div className={`space-y-2 ${message.body ? 'mt-2' : ''}`}>
-                                  {message.attachments.map(file => (
-                                    <div
-                                      key={file.id}
-                                      className={`overflow-hidden rounded-xl border ${
-                                        mine ? 'border-white/15 bg-white/10' : 'bg-muted/50'
-                                      }`}>
-                                      {file.mimeType?.startsWith('image/') ? (
-                                        <button
-                                          type="button"
-                                          onClick={() => openPreview(file)}
-                                          className="block w-full">
-                                          <img
+                                <div className={`${message.body ? 'mt-2' : ''} space-y-2`}>
+                                  {message.attachments.map(file => {
+                                    const isImage = file.mimeType?.startsWith('image/');
+                                    const isVideo = file.mimeType?.startsWith('video/');
+
+                                    return (
+                                      <div
+                                        key={file.id}
+                                        className={`overflow-hidden rounded-xl border ${
+                                          isImage || isVideo
+                                            ? mine
+                                              ? 'border-white/10'
+                                              : 'border-border'
+                                            : mine
+                                              ? 'border-white/15 bg-white/10'
+                                              : 'bg-muted/50'
+                                        }`}>
+                                        {/* IMAGE */}
+                                        {isImage && (
+                                          <button
+                                            type="button"
+                                            onClick={() => openPreview(file)}
+                                            className="block w-full overflow-hidden">
+                                            <img
+                                              src={file.url}
+                                              alt={file.fileName}
+                                              className="block max-h-80 w-full object-cover"
+                                            />
+                                          </button>
+                                        )}
+
+                                        {/* VIDEO */}
+                                        {isVideo && (
+                                          <video
                                             src={file.url}
-                                            alt={file.fileName}
-                                            className="max-h-64 w-full object-cover"
+                                            controls
+                                            className="block max-h-80 w-full object-contain"
                                           />
-                                        </button>
-                                      ) : (
-                                        <div className="flex items-center gap-3 p-2.5">
-                                          <div
-                                            className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
-                                              mine ? 'bg-white/10' : 'bg-background'
-                                            }`}>
-                                            <AttachmentIcon mimeType={file.mimeType} />
+                                        )}
+
+                                        {/* OTHER FILES */}
+                                        {!isImage && !isVideo && (
+                                          <div className="flex items-center gap-3 p-2.5">
+                                            <div
+                                              className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
+                                                mine ? 'bg-white/10' : 'bg-background'
+                                              }`}>
+                                              <AttachmentIcon mimeType={file.mimeType} />
+                                            </div>
+
+                                            <div className="min-w-0 flex-1">
+                                              <p className="truncate text-xs font-medium">{file.fileName}</p>
+
+                                              <p className="text-[10px] opacity-60">
+                                                {file.size
+                                                  ? `${Math.ceil(file.size / 1024)} KB`
+                                                  : 'Attachment'}
+                                              </p>
+                                            </div>
+
+                                            {isPreviewable(file) && (
+                                              <Button
+                                                type="button"
+                                                size="sm"
+                                                variant={mine ? 'secondary' : 'outline'}
+                                                onClick={() => openPreview(file)}>
+                                                Preview
+                                              </Button>
+                                            )}
+
+                                            <a
+                                              href={file.url}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-black/5">
+                                              <Download className="size-4" />
+                                            </a>
                                           </div>
-
-                                          <div className="min-w-0 flex-1">
-                                            <p className="truncate text-xs font-medium">{file.fileName}</p>
-
-                                            <p className="text-[10px] opacity-60">
-                                              {file.size ? `${Math.ceil(file.size / 1024)} KB` : 'Attachment'}
-                                            </p>
-                                          </div>
-
-                                          {isPreviewable(file) && (
-                                            <Button
-                                              type="button"
-                                              size="sm"
-                                              variant={mine ? 'secondary' : 'outline'}
-                                              onClick={() => openPreview(file)}>
-                                              Preview
-                                            </Button>
-                                          )}
-
-                                          <a
-                                            href={file.url}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-black/5">
-                                            <Download className="size-4" />
-                                          </a>
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               )}
 
-                              {/* Metadata */}
+                              {/* ------------------------------------------------- */}
+                              {/* METADATA                                          */}
+                              {/* ------------------------------------------------- */}
+
                               <div
                                 className={`mt-1 flex items-center justify-end gap-1 text-[9px] ${
-                                  mine ? 'text-white/65' : 'text-muted-foreground'
+                                  mine ? 'text-background/65' : 'text-muted-foreground'
                                 }`}>
                                 {message.updatedAt.getTime() !== message.createdAt.getTime() && !deleted && (
                                   <span>edited</span>
@@ -700,7 +815,10 @@ export default function MessagesClient({
                             </div>
                           </div>
 
-                          {/* Actions */}
+                          {/* ===================================================== */}
+                          {/* MESSAGE ACTIONS                                      */}
+                          {/* ===================================================== */}
+
                           {!deleted && (
                             <div className="invisible flex items-center gap-0.5 rounded-lg border bg-card p-1 opacity-0 shadow-sm transition-all group-hover:visible group-hover:opacity-100">
                               <Button
@@ -753,12 +871,18 @@ export default function MessagesClient({
                 </div>
               </div>
 
-              {/* Error */}
+              {/* ============================================================= */}
+              {/* ERROR                                                            */}
+              {/* ============================================================= */}
+
               {error && (
                 <div className="border-t bg-destructive/5 px-4 py-2 text-xs text-destructive">{error}</div>
               )}
 
-              {/* Reply / Edit context */}
+              {/* ============================================================= */}
+              {/* REPLY / EDIT CONTEXT                                            */}
+              {/* ============================================================= */}
+
               {(replyTo || editing) && (
                 <div className="border-t bg-card px-4 py-2">
                   <div className="mx-auto flex max-w-3xl items-center gap-3 rounded-xl bg-muted/50 px-3 py-2">
@@ -787,7 +911,10 @@ export default function MessagesClient({
                 </div>
               )}
 
-              {/* Selected files */}
+              {/* ============================================================= */}
+              {/* SELECTED FILES                                                  */}
+              {/* ============================================================= */}
+
               {files.length > 0 && !editing && (
                 <div className="border-t bg-card px-4 py-2">
                   <div className="mx-auto flex max-w-3xl flex-wrap gap-2">
@@ -812,7 +939,10 @@ export default function MessagesClient({
                 </div>
               )}
 
-              {/* Composer */}
+              {/* ============================================================= */}
+              {/* COMPOSER                                                        */}
+              {/* ============================================================= */}
+
               <div className="shrink-0 border-t bg-card p-3 sm:p-4">
                 <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border bg-background p-2 shadow-sm">
                   {!editing && (
@@ -877,7 +1007,10 @@ export default function MessagesClient({
         </section>
       </div>
 
-      {/* Attachment Preview */}
+      {/* ===================================================================== */}
+      {/* ATTACHMENT PREVIEW                                                    */}
+      {/* ===================================================================== */}
+
       <Dialog
         open={Boolean(preview)}
         onOpenChange={open => {

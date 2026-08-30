@@ -73,19 +73,19 @@ export const publicNavigation: NavigationItem[] = [
     description: 'Discover available opportunities.'
   },
   {
-    href: '#',
+    href: '/companies',
     label: 'Companies',
     icon: Building2,
     description: 'Explore companies hiring on Job Rcentz.'
   },
   {
-    href: '#',
+    href: '/about',
     label: 'About',
     icon: Info,
     description: 'Learn more about Job Rcentz.'
   },
   {
-    href: '#',
+    href: '/resources',
     label: 'Resources',
     icon: FileText,
     description: 'Explore career resources and useful information.'
