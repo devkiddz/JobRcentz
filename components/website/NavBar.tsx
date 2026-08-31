@@ -65,9 +65,8 @@ export default function NavBar({ user, unreadNotificationCount = 0 }: NavBarProp
         {/* =========================================================
             ACCOUNT ACTIONS
         ========================================================= */}
-        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-2">
-          {user && <NotificationButton unreadCount={unreadNotificationCount} />}
-
+        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1">
+          <NotificationButton unreadCount={unreadNotificationCount} />
           <ActionButton user={user ?? undefined} />
         </div>
       </nav>

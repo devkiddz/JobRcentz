@@ -18,9 +18,9 @@ export default function NotificationButton({ unreadCount = 0 }: NotificationButt
     <DropdownMenu>
       <DropdownMenuTrigger
         className={buttonVariants({
-          variant: 'outline',
+          variant: 'default',
           size: 'icon',
-          className: 'relative size-10 shrink-0 rounded-full'
+          className: 'w-10 h-10 px-0 dark:text-black text-white rounded-full'
         })}
         aria-label={label}
         title={label}>

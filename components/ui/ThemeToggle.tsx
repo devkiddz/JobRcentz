@@ -21,9 +21,9 @@ export function ThemeToggle() {
         className={buttonVariants({
           variant: 'default',
           size: 'icon',
-          className: 'w-10 h-10 px-0 text-white'
+          className: 'w-10 h-10 px-0 dark:text-black text-white'
         })}>
-        <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+        <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90 dark:text-black" />
         <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
         <span className="sr-only">Toggle theme</span>
       </DropdownMenuTrigger>
